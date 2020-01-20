@@ -1,0 +1,51 @@
+// interrupts_shapeflush.hoc
+
+START = 33  // ms, time of the first interrupt
+INTERVAL = 1  // ms, interval between interrupts
+NUM = 1 // how many interrupts to generate
+
+// user specification of what happens in response to an interrupt
+proc userinthandler() {
+//  print "in the userinthandler"
+   // flush (update) graphs on the fast_flush_list
+
+    flushPlot()
+  continue_dialog("interrupt!")
+/*
+  // re-initialize cvode if a parameter has been changed
+  if (cvode.active()) {
+    cvode.re_init()
+  } else {
+    fcurrent()
+  }
+*/
+}
+
+///// interrupt control code below this point
+///// alter at your own risk
+
+objref fih
+fih = new FInitializeHandler("intinitializer()")
+
+proc intinitializer() {
+  numtodo = NUM // restore the number of interrupts to generate
+  if (numtodo>0) {
+    cvode.event(START, "inthandler()")
+    numtodo -= 1
+/*
+    print "the first interrupt will be at ", START
+  } else {
+    print "no interrupts will be generated"
+*/
+  }
+}
+
+proc inthandler() {
+//  print "interrupt at t = ", t
+  if (numtodo>0) {
+    cvode.event(t + INTERVAL, "inthandler()")
+    numtodo -= 1
+//    print "  next will be at ", t + INTERVAL
+  }
+  userinthandler() // whatever the user wants to have happen
+}

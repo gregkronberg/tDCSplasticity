@@ -1,0 +1,49 @@
+to do
+
+-analysis module
+	-add comments
+	-detect peak voltage in a given section
+
+-experiments
+	-subthreshold integration
+		-apply subthreshold inputs to different branches
+		-apply an increasing number of simultaneous input
+		-record somatic voltage
+		-does dcs act independently on each branch?
+			-if so, dcs effects should scale with the number of independent branches that are activated
+
+	-sequences
+		-See Branco and Hausser 2010 for motivation
+		-branches amplify sequences due to gradient of impedence and dendritic nonlinearities
+		-choose a dendritic branch and increase the discretization to ~20 segments.  apply sequences of inputs along the branch. sequences going from distal to proximal should be amplified. does dcs boost this amplification?
+
+
+	- dendritic spike probability
+		- does dcs enhance dendritic spike probability during poisson trains
+
+	-tbs experiments
+
+		- start by choosing a branch and study spike generation and plasticity in that branch. Are results influenced by 1 vs multiple branches?
+		- detect spikes in each compartment and determine where they were initiated
+
+		-set clopath parameters to same as in original paper
+		-set up to save data and analyze using python later (voltage in all compartments, weights in all compartments, which synapses were activated
+		)
+		-run 100 simulations, randomly drawing the number of activated synapses from a gaussian (0.4 mean, 0.1 sd)
+
+
+		-replicate asif's tbs experiments, including asymmetry
+		-can asymmetry be explained by dendritic spiking? h-current?
+		
+		-replicate with 20V/m, then reduce intensity to see if effects are linear
+
+		-randomly activate 40% of synapses and run TBS
+		
+		-choose parameters to fit
+			-synaptic current
+			-h-current and a-type potassium current
+			-clopath rule: ltp/ltd thresholds, learning rate, time constants
+
+		-reduce to two-compartment model
+				-see lafon 2017, pinsky and rinzel 1994, rinzel and rall 1974, park 2005
+
