@@ -17,6 +17,7 @@ class Param(object):
         pass
 
     def default_parameters(self):
+
       
         exp='default'
         self.p = {
@@ -325,6 +326,166 @@ class Param(object):
             'ghd_cutoff_distance': 350, # distance from soma where Ih stops increasing (um)
         }
 
+    def pyramidal_cylinder(self):
+        self.p = {
+            'experiment' : '',
+            'cell' : [], 
+            'data_folder' : '',
+            'fig_folder' : '',
+            
+            # equivalent cylinder parameters determined by cell.DendriteTransform() of Migliore cell geo5038804.hoc
+            'L_basal' : 1600.,
+            'L_soma' : 7.5,
+            'L_apical_prox' : 1000.,
+            'L_apical_dist' : 1000.,
+            'diam1_basal' : 1.9,
+            'diam1_soma' : 7.5,
+            'diam1_apical_prox' : 2.75,
+            'diam1_apical_dist' : 2.75,
+            'diam2_basal' : 1.9,
+            'diam2_soma' : 7.5,
+            'diam2_apical_prox' : 2.75,
+            'diam2_apical_dist' : 2.75,
+            'nsec_basal' : 1,
+            'nsec_soma' : 1,
+            'nsec_apical_prox' : 1,
+            'nsec_apical_dist' : 1,
+            'syn_types' : ['ampa', 'nmda', 'clopath'],
+            'fixnseg':False,        # determine number of segments in cylinder according to d_lambda rule
+
+            # FIXME, must be set so that variable names are unique
+            # set recording variables
+                # organized a dictionary of dictionaries [attribute name: [variable type: mechanism]
+                # note that if the attribute is part of a synapse object, it will accessed differently than a range variable
+                    # range variables can be simply accessed by dot notation directly from a given neuron section
+                    # synapse attributes need to be accesed from the synapse object stored in cell.syns
+            'rec_variables' : 
+            [('v','range','v'),
+            ('t','range','t'),
+            ('gbar','syn','clopath'),
+            ('ica_calH','range','calH'),
+            ('i', 'syn','nmda')], 
+
+            # choose y variables to plot [varaibles]
+            'plot_variables' : ['v','i','ik_kad','i_hd', 'ica_calH', 'ina_na3', 'gbar'],
+            # FIXME, should be a list, where you can choose arbitrary combinations of variables 
+            # x variables to plot 
+            'x_variables':['t'],
+            'group_trees':False,
+
+            # synapse activation
+            'syn_frac':[],      # fraction of synapses to activate with choose_seg_rand()
+            'trial':0,          # count the current trial number
+            'trial_id':0,       # a unique identifier for each trial using uuid64
+            'w_rand':[],        # choose synapse weights from a random distribution (Bool)
+            'w_std' : [],       # standard deviation of weights distribution, if w_rand is True
+            'w_mean': .001,       # mean synaptic weight (microsiemens or micro-ohms)
+            'trees': [],        # list of subtrees with active synapses [trees]
+            'w_list':[],        # nested list of weights, determined by set_weights().  Weights correspond to segments indexed in seg_idx.  Organized as [tree][section][segment]
+            'sec_list':[],      # list of active sections with repeats, each entry corresponds to the section for a given segment in seg_list.  [tree][section number]
+            'seg_list':[],      # list of active segments, corresponding to sections in sec_list {tree}[segment number]
+            'sec_idx': [],      # list of active sections, without repeats. Indeces in the list correspond to indeces in seg_idx {tree}[section number]
+            'seg_idx':[],       # nested list of active segments {tree}[section index][segment number]
+            'seg_dist' : {},    # distance of each segment from soma {tree}[section index][segment number]
+
+            # extracellular field stimualation
+            'field_angle': 0,   # angle relative to principle cell axis in radians 
+            'field':[-20,0,20], # list of stimulation intensities in V/m, negative = cathodal, postivie = anodal
+            'field_names':['cathodal','control','anodal'], 
+            'field_colors':['b','k','r'],    # plot colors correesponding to entries in field
+            'field_on':0,      # stimulation onset time in (ms)
+            'field_off': 70,    # stimulation offset time in (ms)
+            'dt' : .025,        # integration timestep (ms)
+            'warmup': 30,       # simulation warmup time (ms)
+            'tstop' : 70,       # simulation duration (ms)
+
+            # bipolar stimulation parameters
+            'bursts':1,         # bipolar stimulus bursts
+            'pulses':4,         # pulses per bursts 
+            'pulse_freq':100,   # pulse frequency within burst (Hz)
+            'burst_freq':5,     # burst frequency (Hz)
+            'noise' : 0,        # noise in input arrival (see NetCon documentation)
+
+            # branch sequence parameters
+            'num_sec':1,
+            'seg_L' : 4.,
+            'seg_spacing':20,
+            'max_seg':[],
+            'branch':False,
+            'full_path':False,
+            'branch_distance':[],
+            'branch_seg_distance':[],
+            'sequence_delay': 0,
+            'sequence_direction':'in',
+
+            # clopath synapse parameters
+            'clopath_delay_steps': 1,
+            'clopath_A_m':3E-5, # depression magnitude parameter (mV^-1)
+            'clopath_tetam':-70,#-41, # depression threshold (mV)
+            'clopath_tetap':-65,#-38, # potentiation threshold (mV)
+            'clopath_tau_r':8,#-38, # potentiation threshold (mV)
+            'clopath_tau_0':30,#-38, # potentiation threshold (mV)
+            'clopath_tau_y': 5, # time constant (ms) for low pass filter post membrane potential for potentiation
+            'clopath_A_p': 38E-5, # amplitude for potentiation (mV^-2)
+
+
+            # ampa synapse parameters
+            'tau1_ampa' : 0.2,  # rise time constant (ms)
+            'tau2_ampa' : 2,    # decay time constant   (ms)
+            'i_ampa' : 0.18,    # default peak ampa current in uS
+
+            # facilitation depression parameters for AMPA from Varela et al. 1997
+            # fit to experimental theta burst and 20 Hz tetanus traces
+            'f_ampa':5.,
+            'tau_F_ampa':94.,
+            'd1_ampa':.45,
+            'tau_D1_ampa':540.,
+            'd2_ampa':.12,
+            'tau_D2_ampa':45.,
+            'd3_ampa':.98,
+            'tau_D3_ampa':120000.,
+
+            # nmda synapse parameters
+            'tau1_nmda' : 1,    # rise time constant (ms)
+            'tau2_nmda' : 50,   # decay time constant (ms)
+
+            
+            # Parameters from Migliore 2005 (signal propogation in oblique dendrites)
+            # conductances reported as (nS/um2) in paper, but need to be in (mho/cm2)
+            # conversion 10,000*(pS/um2) = 10*(nS/um2) = (mho/cm2) = 1000.*(mS/cm2)
+            # *** units in paper are a typo, values are already reported in (mho/cm2) ***
+            'Vrest' : -65.,             # leak potential (mV)
+            'v_init' :-71.4,  # initialized membrane voltage, based on steady state membrane potential at soma
+            'gna' :  1.*0.025,#.025,                # peak sodium conductance (mho/cm2)
+            'dgna' : 0.,#-.000025,          # change in sodium conductance with distance (ohm/cm2/um) from Kim 2015
+            'ena' : 55.,                    # sodium reversal potential (mV)
+            'gna_inact': 0., # sodium slow inactivation factor (1=none, 0=max inactivation)
+            'AXONM' : 10.,              # multiplicative factor for axonal conductance to generate axon potentials in AIS
+            'SOMAM':1.5,
+            'gkdr' : 1.*0.01,#0.01,             # delayed rectifier potassium peak conductance (mho/cm2)
+            'ek' : -90.,                    # potassium reversal potential
+            'celsius' : 35.0,               # temperature (degrees C)
+            'KMULT' :  1.*0.03,#0.03,           # multiplicative factor for distal A-type potassium conductances
+            'KMULTP' : 1.*.03,#0.03,                # multiplicative factor for proximal A-type potassium conductances
+            'ghd' : 1.*0.00005,#0.0001,         # peak h-current conductance (mho/cm2)
+            'gcalbar': 0.*.00125 ,          # L-type calcium conductance from Kim et al. 2015 (mho/cm2)
+            'ehd' : -30.,                   # h-current reversal potential (mV)
+            'kl_hd' : -6.,#-8.,
+            'vhalfl_hd_prox' : -82.,#-73,           # activation threshold for proximal h current (mV)
+            'vhalfl_hd_dist' : -90.,#-81,           # activation threshold for distal h-current (mV)
+            'vhalfl_kad' : -56.,#-56.,          # inactivation threshold for distal a-type current (mV)
+            'vhalfl_kap' : -56.,#-56.,          # inactivation threshold for proximal a-type current (mV)
+            'vhalfn_kad' : -1.,#-1.,            # activation threshold for distal a-type urrent (mV)
+            'vhalfn_kap' : -1.,#-1.,            # activation threshold for proximal a-type current (mV)
+            'RaAll' : 150.,             # axial resistance, all compartments (ohm*cm)
+            'RaAx' : 50.,                   # axial resistance, axon (ohm*cm)                   
+            'RmAll' : 28000.,           # specific membrane resistance (ohm/cm2)
+            'Cm' : 1.,                  # specific membrane capacitance (uf/cm2)
+            'ka_grad' : .2,#1.,#1.,#1.,             # slope of a-type potassium channel gradient with distance from soma 
+            'ghd_grad' : 1,#1.,#3.,                # slope of h channel gradient with distance from soma
+            'ka_cutoff_distance': 350, # distance from soma where ka stops increasing (um)
+            'ghd_cutoff_distance': 350, # distance from soma where Ih stops increasing (um)
+        }
     def _set_sequence_delays(self, syn_idx, delay):
         ''' set delays for synapses specified by syn_idx
         ==Args==

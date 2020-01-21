@@ -518,3 +518,147 @@ class PyramidalCylinder:
                             elif syn_key is 'clopath':
                                 # print syn_key
                                 self.syns[tree_key][sec_i][seg_i][syn_key] = h.STDPSynCCNon(sec(seg.x))                        
+
+class DendriteTransform:
+    """"""
+    def __init__(self, p):
+        cell1 = CellMigliore2005(p)
+        apical_transform = self.dendrite_transform(geo=cell1.geo, python_tree=['apical_trunk','apical_tuft'], neuron_tree=['user5', 'apical_dendrite'])
+        basal_transform = self.dendrite_transform(geo=cell1.geo, python_tree=['basal'], neuron_tree=['dendrite'])
+        print 'apical:', apical_transform['a_cable'], apical_transform['L_cable']
+        print 'basal:', basal_transform['a_cable'], basal_transform['L_cable']
+
+    def measure_area(self, tree):
+        """
+        given a tree measure the total area of all sections in the tree
+
+        tree is a list of sections (hoc objects)
+        """
+        area_all = []
+        for sec_i, sec in enumerate(tree):
+            # convert to um to cm (*.0001)
+            L = .0001*sec.L
+            a = .0001*sec.diam/2.
+            rL = sec.Ra
+            rm = 1/sec.g_pas
+            area = 2*np.pi*a*L
+            lam = np.sqrt(a*rm/(2*rL))
+            area_all.append(area)
+
+        return sum(area_all)
+
+    def measure_length(self, geo):
+        """ measure electrotonic length for each path along a cells dendritic tree
+        """
+        # keep track of most recent section in each path [paths]
+        secs = [geo['soma'][0]]
+
+        # keep track of all sections in paths [paths][sections]
+        # does not include soma
+        paths=[[]]
+        
+        # iterate over paths (most recent section)
+        for sec_i, sec in enumerate(secs):
+            
+            # current section
+            current_sec_ref = h.SectionRef(sec=sec)
+            # current children
+            current_children = current_sec_ref.child
+            
+            # if there are children
+            while len(current_children)>0:
+                
+                # iterate over current children 
+                for child_i, child in enumerate(current_children):
+
+                    # add first child to current path
+                    if child_i==0:
+                        paths[sec_i].append(child)
+                        # update current section
+                        sec = child
+                    
+                    # if multiple children
+                    if child_i > 0:
+                        # create new path to copy previous path when tree splits
+                        new_path=[]
+                        for section in paths[sec_i]:
+                            new_path.append(section)
+
+                        # copy current path in list
+                        # if split occurs at soma, do not copy previous list
+                        if h.SectionRef(sec=child).parent.name()!='soma':
+                            paths.append(new_path)
+                        else:
+                            # create new list, not including soma
+                            paths.append([])
+                        
+                        # add corresponding child to the current section list
+                        secs.append(child)
+                        
+                        # add corresponding child to new path 
+                        paths[sec_i + child_i].append(child)
+                
+                # update current section and children       
+                current_sec_ref = h.SectionRef(sec=sec)
+                current_children = current_sec_ref.child
+
+
+        # calculate electrotonic length of each path
+        path_l = [] # [paths][electrotonic section length]
+        sec_name = [] # [paths][section names]
+        for path_i, path in enumerate(paths):
+            path_l.append([])
+            sec_name.append([])
+            for sec_i, sec in enumerate(path):
+                # convert all distances in cm
+                # section length
+                L = .0001*sec.L
+                # section radius
+                a = .0001*sec.diam/2
+                # membrane resistivity
+                rm = 1/sec.g_pas
+                # axial resistivity
+                rL = sec.Ra
+                # space constant lambda
+                lam = np.sqrt( (a*rm) / (2*rL) )
+                # electrotonic length
+                e_length = L/lam
+                # electrotonic lengths for all paths and sections [paths][sections]
+                path_l[path_i].append(e_length) 
+                # keep track of section names [paths][sections]
+                sec_name[path_i].append(sec.name())
+        # print path_l[0]
+        return {'path_l': path_l,
+        'sec_name':sec_name}
+
+    def dendrite_transform(self, geo, python_tree, neuron_tree):
+        """ equivalent cable transform for dendritic tree
+        """
+        # FIXME
+        rL_cable = 150.
+        rm_cable = 28000.
+        # area
+        A_full=0
+        for tree_i, tree in enumerate(python_tree):
+            A_full += self.measure_area(geo[tree])
+
+        paths = self.measure_length(geo)
+        e_lengths = []
+        # iterate over all paths
+        for path_i, path in enumerate(paths['path_l']):
+            # only keep paths in the neuron_tree argument
+            for tree in neuron_tree:
+                for sec in paths['sec_name'][path_i]:
+                    if tree in sec:
+                        e_lengths.append(sum(path))
+                        break
+
+                        
+
+        EL_full = np.mean(e_lengths) 
+
+        # convert cm back to um (*10000)
+        L_cable = (EL_full**(2./3)) * (A_full*rm_cable/(4.*np.pi*rL_cable))**(1./3)
+        a_cable = A_full/(2.*np.pi*L_cable)
+
+        return {'a_cable':10000*a_cable, 'L_cable':10000*L_cable}

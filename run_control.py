@@ -152,7 +152,7 @@ class Experiment:
 
         # setup cell and updated parameter structures
         self.P, self.cell = self._standard_parameter_setup(
-            default_p='migliore_2005',
+            default_p='pyramidal_cylinder',
             cell_class='PyramidalCylinder',
             p_update=p_update,
             paths_update=paths_update,

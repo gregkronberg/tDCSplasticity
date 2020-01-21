@@ -159,8 +159,26 @@ class VarFuncs:
                     df_new[key]=val
 
         if 'params' in kwargs:
-            for param in kwargs['params']:
-                df_new[param]=pre[var]['p'][param]
+            if kwargs['params']==None or kwargs['params']=='all':
+                for param in pre[var]['p'].keys():
+                    if param not in df_new:
+
+                        df_new[param]=None
+                        for i in df_new.index:
+                            value = pre[var]['p'][param]
+                            if type(value)==list or type(value)==dict:
+                                if len(value)==0:
+                                    value=np.nan
+                                df_new.at[i,param] = value
+                            else:
+                                df_new.at[i,param] = value
+
+            else:
+                for param in kwargs['params']:
+                    if param not in df_new:
+                        df_new[param]=None
+                        for i in df_new.index:
+                            df_new.at[i,param]=pre[var]['p'][param]
 
         # iterate over traces
         df_new['paths']=None
@@ -390,7 +408,7 @@ class VarGen:
         print 'total data files:', len(data_files) 
         print 'new data files:', len(new_data_files)
         if rerun:
-            print 'functions to rerun over all slices:', [f._name__ for f in rerun]
+            print 'functions to rerun over all slices:', [f.__name__ for f in rerun]
 
         # iterate over new files and update group_data structure
         #`````````````````````````````````````````````````````````````````
