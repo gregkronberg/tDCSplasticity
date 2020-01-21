@@ -294,6 +294,7 @@ class PyramidalCylinder:
         # list sections
         trees = ['basal', 'soma', 'apical_prox', 'apical_dist']
         areas = [19966.36, 176.29, 35162.01/2., 35162.01/2.]
+        p['nseg']=1
         
         # store geometry
         self.geo = {}
@@ -345,7 +346,7 @@ class PyramidalCylinder:
                 self.geo[tree][sec_i].L = p['L_'+tree]
                 # self.geo[tree][sec_i].diam = p['diam_'+tree]
 
-                self.geo[tree][sec_i].nseg=p['nseg']
+                # self.geo[tree][sec_i].nseg=p['nseg']
 
         self.geo['basal'][0].connect(self.geo['soma'][0](0),0)
         self.geo['apical_prox'][0].connect(self.geo['soma'][0](1),0)
@@ -399,8 +400,8 @@ class PyramidalCylinder:
                     sec.vhalfn_kap = p['vhalfn_kap']
 
                     # L-type calcium channel
-                    sec.insert('calH')
-                    sec.gcalbar_calH = p['gcalbar']
+                    # sec.insert('calH')
+                    # sec.gcalbar_calH = p['gcalbar']
 
                     # sodium reversal potential 
                     sec.ena = p['ena']      

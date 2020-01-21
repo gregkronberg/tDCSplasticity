@@ -19,6 +19,7 @@ import pickle
 import stims
 import datetime
 import itertools
+import inspect
 
 # 
 class Experiment:
@@ -106,6 +107,68 @@ class Experiment:
                 self.P = self._update_synapse_parameters(P=self.P, cell=self.cell, method='_choose_seg_rand')
 
                 self.run_obj = self._standard_run_and_save(P=self.P, cell=self.cell, trial=trial)
+
+    def exp_1a1_4compartment(self, **kwargs):
+        """ Activate a single pathway with a single TBS burst at varying distance from soma: 0-300, 100-400, 200-500, 300-600, 0-200, 100-300, 200-400, 300-500, 400-600
+
+        6, 8, 10, 12, 16,20 synapses are randomly distributed within these distance ranges with conductance 0.001 uS/cm2.  This is chosen to be close to threshold by empirical testing
+        
+        ==Args==
+        -experiment : string containing the name of the experiment, eg 'exp_1a1'
+        -trials :  integer number of trials to run
+        -syn_dist :  list, or nested list, containing synapse distance requirements for choose_seg_rand. eg [0, 200] chooses synapses between 0 and 200 um from soma
+        -syn_num :  list of number of synapses to be activated. note that synapses are chosen randomly with replacement, so the same synapse can be selected multiple times.  In this case the weight is multiplied by the number of times the synapse is selected
+        """
+
+        # updates to global parameter dictionary 
+        p_update = {
+        'experiment' : inspect.stack()[0][3],#kwargs['experiment'], 
+        'trials' : kwargs['trials'],
+        'field':[-20.,0.,20.],
+        'rec_variables':[('v','range','v'),('input_times','syn','ampa'),('ica_calH','range','calH'), ('i','syn','nmda')],
+        'active_paths':['1',],
+        'gcalbar': 1.*.00125 ,          # L-type calcium conductance from Kim et al. 2015 (mho/cm2)
+        'gkdr':.1,
+        }
+
+        # set up synaptic pathway parameters
+        paths_update = {'1':{
+        'trees': ['apical_prox','apical_dist'],
+        'syn_num': 5,
+        'nsyns': 1.,
+        'syn_dist': [0,10000],
+        'pulses': 4.,
+        'pulse_freq': 100.,
+        'bursts': 1.,
+        'burst_freq': 5.,
+        'warmup': 10,
+        'w_mean': 1*.001,
+        'w_std':0.,
+        'w_rand':False,
+        'replace_syn':True,
+        'syn_frac':0.,
+        'noise':0,
+        },}
+
+        # setup cell and updated parameter structures
+        self.P, self.cell = self._standard_parameter_setup(
+            default_p='migliore_2005',
+            cell_class='PyramidalCylinder',
+            p_update=p_update,
+            paths_update=paths_update,
+            load_fd=True)
+
+        # update parameter dictionary
+        # self.P.paths['1']['syn_num']=syn_num
+
+        # iterate over trials
+        for trial_i, trial in enumerate(range(self.P.p['trials'])):
+
+            # create list of active synapses, weights, delays
+            # stored in P.p['seg_idx', 'w_list', 'sequence_delays'], 
+            self.P = self._update_synapse_parameters(P=self.P, cell=self.cell, method='_choose_seg_rand')
+
+            self.run_obj = self._standard_run_and_save(P=self.P, cell=self.cell, trial=trial)
 
     def exp_1a1_nablock(self, **kwargs):
         """ repeat experiment 1a1 with sodium channels block in soma and axon
@@ -1554,7 +1617,12 @@ class Experiment:
             p['p_path'][path_key]=copy.copy(path)
 
         # add soma and axon to rec_idx
-        p['rec_idx']+=[('soma',0,0),('axon',0,0)]
+        if 'soma' in cell.geo:
+            p['rec_idx']+=[('soma',0,0)]
+        if 'axon' in cell.geo:
+            p['rec_idx']+=[('axon',0,0)]
+
+        # p['rec_idx']+=[('soma',0,0),('axon',0,0)]
 
         # update tstop based on synaptic inputs in each path
         tstops=[]
