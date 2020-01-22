@@ -221,7 +221,15 @@ def _get_terminal_branches(geo):
     return terminal_branches
 
 def _choose_seg_from_branch(geo, sec_idx):
-    '''
+    ''' create list of active synapses based on segments in branch
+    ==Args==
+    -geo : cell geometry object 
+    -sec_idx : specifies which sections to activate synapses on. sec_idx[tree_key][section number]
+    ==Return==
+    -syn_idx_unique : unique list of segment locations to acitvate synapses on as syn_idx_unique[(tree_key, sec_num, seg_num)]
+    -syn_count_unique : list with elements corresponding to syn_idx_unique, which specifies the number of synapses to activate at the specified segment
+    ==Update==
+    ==Comments==
     '''
     syn_idx_unique = []
     syn_count_unique=[]
@@ -634,6 +642,8 @@ class Uncage:
         warmup = warmup   # warm up time (ms)
         stim  = [] # list of stim objects [synapse number][burst number]
 
+        print 'syn_idx:', syn_idx
+        print delays
         # iterate over synapses in syn_idx
         for seg_i, seg in enumerate(syn_idx):
 

@@ -45,16 +45,24 @@ class Experiment:
         Distance and synapse number dependence of DCS effects
         """
     def exp_branch_sequence(self, **kwargs):
-        '''
+        ''' simulate sequences of inputs on various dendritic branches as in Branco and Hausser 2010
+
+        randomly choose dendritic branch, reduce the size of each segment to be ~10 um, activate segments in a sequence (either towards or away from the terminal), vary the following parameters
+        ==Parameters==
+        -field : 0, 1, 5, 10, 20 (positive and negative)
+        -branches : first five branches in eahc tree
+        -sequence delays : 1, 2, 5, 10, ms between activation of neighboring segments (segments are ~10 um apart)
+        -synaptic weights : .001, .0015 
         '''
         # updates to global parameter dictionary 
         p_update = {
         'experiment' : inspect.stack()[0][3], 
-        'trials' : kwargs['trials'],
-        'field':[0.,],
-        'rec_variables':[('v','range','v'),('input_times','syn','ampa'),('ica_calH','range','calH'), ('i','syn','nmda')],
+        'trials' : 1,
+        'field':kwargs['field'],
+        'rec_variables':[('v','range','v'), ('i','syn','nmda')],
         'active_paths':['1',],
         'gcalbar': 1.*.00125 ,          # L-type calcium conductance from Kim et al. 2015 (mho/cm2)
+        'branch_seg_L':10
         }
 
         # set up synaptic pathway parameters
@@ -68,13 +76,14 @@ class Experiment:
         'bursts': 1.,
         'burst_freq': 5.,
         'warmup': 10,
-        'w_mean': 1*.001,
+        'w_mean': 1.5*.001,
         'w_std':0.,
         'w_rand':False,
         'replace_syn':True,
         'syn_frac':0.,
         'noise':0,
-        'delay':1, 
+        'delay':.1, 
+        'sequence_direction':'in'
         },}
 
         # setup cell and updated parameter structures
@@ -85,15 +94,52 @@ class Experiment:
             paths_update=paths_update,
             load_fd=True)
 
-        # iterate over trials
-        for trial_i, trial in enumerate(range(self.P.p['trials'])):
+        # get sections with terminal branches
+        terminal_branches = stims._get_terminal_branches(self.cell.geo)
+        # maximum branches to simulate per tree
+        max_branches = 5
+        delays = [ 1, 2, 5, 10]
+        directions = ['in','out']
+        weights = [.001, .0015]
+        # iterate over branches
+        for tree_key, branch_sec in terminal_branches.iteritems():
+            if tree_key!='soma' and tree_key!='axon':
+                for sec_i, sec_num in enumerate(branch_sec):
+                    if sec_i<max_branches:
+                        
+                        # setup cell and updated parameter structures
+                        self.P, self.cell = self._standard_parameter_setup(
+                            default_p='migliore_2005',
+                            cell_class='CellMigliore2005',
+                            p_update=p_update,
+                            paths_update=paths_update,
+                            load_fd=True)
+                        # section to simulate
+                        sec_idx = {tree_key:[sec_num]}
+                        self.P.paths['1']['sec_idx']=sec_idx
+                        # iterate over delays
+                        for delay in delays:
+                            self.P.paths['1']['delay']=delay
+                            # iterate over directions
+                            for direction in directions:
+                                self.P.paths['1']['sequence_direction']=direction
+                                if direction=='in':
+                                    reverse=True
+                                elif direction=='out':
+                                    reverse=False
+                                # iterate over trials
+                                for weight in weights:
+                                    self.P.paths['1']['w_mean']=weight
+                                    for trial_i, trial in enumerate(range(self.P.p['trials'])):
+                                        self.P = self._update_synapse_parameters_sequence(P=self.P, cell=self.cell, method='_choose_seg_rand', reverse=reverse, sec_idx=sec_idx)
+                                        # measure distance of each segment from the soma and store in parameter dictionary
+                                        self.P.p['seg_dist'] = self.P._seg_distance(self.cell)
 
-            # create list of active synapses, weights, delays
-            # stored in P.p['seg_idx', 'w_list', 'sequence_delays'], 
-            self.P = self._update_synapse_parameters_sequence(P=self.P, cell=self.cell, method='_choose_seg_rand', reverse=True)
+                                        # create morphology for shape plots
+                                        self.P.p['morpho'] = self.P._create_morpho(self.cell.geo)
 
-            self.run_obj = self._standard_run_and_save_df(P=self.P, cell=self.cell, trial=trial)
-    
+                                        self.run_obj = self._standard_run_and_save_df(P=self.P, cell=self.cell, trial=trial)
+        
     def exp_1a1(self, **kwargs):
         """ Activate a single pathway with a single TBS burst at varying distance from soma: 0-300, 100-400, 200-500, 300-600, 0-200, 100-300, 200-400, 300-500, 400-600
 
@@ -1767,17 +1813,21 @@ class Experiment:
             path['sequence_delays']=[]
             # if path is included in current combination
             if path_key in p['active_paths']:
+                # get sec_idx
+                if 'sec_idx' in kwargs:
+                    sec_idx=kwargs['sec_idx']
+                else:
+                    terminal_branches = stims._get_terminal_branches(cell.geo)
+                    sec_idx={'apical_tuft':[69]}
 
-                # get sections with terminal branches
-                terminal_branches = stims._get_terminal_branches(cell.geo)
-                # choose section to sitmulate
-                sec_idx={'apical_tuft':[69]}
                 # set branch nseg
-                geo = stims._set_branch_nseg(cell.geo, sec_idx, seg_L=10)
+                geo = stims._set_branch_nseg(cell.geo, sec_idx, seg_L=p['branch_seg_L'])
                 # update synapses after nseg
                 cell.syns = stims._update_synapses_after_nseg(p, cell.geo, cell.syns, sec_idx)
                 # choose segments to activate
                 path['syn_idx'], path['syn_counts'] = stims._choose_seg_from_branch(cell.geo, sec_idx)
+                # path['syn_idx']=path['syn_idx'][:3]
+                # path['syn_counts']=path['syn_counts'][:3]
                 if reverse:
                     path['syn_idx'].reverse()
                     path['syn_counts'].reverse()
@@ -1832,6 +1882,9 @@ class Experiment:
         '''
         # store trial number
         P.p['trial']=trial
+        # data and figure folder
+        P.p['data_directory'] = data_folder+p['experiment']+'/'
+        P.p['fig_folder'] =  'png figures/'+p['experiment']+'/'
         
         if trial_id is None:
             trial_id = self._generate_trial_id()
@@ -1863,7 +1916,7 @@ class Experiment:
         	)
 
         # save data for eahc trial
-        self.run_obj._save_data(data=self.run_obj.data, file_name=file_name)
+        self.run_obj._save_data(data=self.run_obj.data, file_name=file_name, data_directory=P.p['data_directory'])
 
         return self.run_obj
 
@@ -1872,6 +1925,9 @@ class Experiment:
         '''
         # store trial number
         P.p['trial']=trial
+        # data and figure folder
+        P.p['data_directory'] = 'Data/'+P.p['experiment']+'/'
+        P.p['fig_folder'] =  'png figures/'+P.p['experiment']+'/'
         
         if trial_id is None:
             trial_id = self._generate_trial_id()
@@ -1903,7 +1959,7 @@ class Experiment:
             )
 
         # save data for eahc trial
-        # self.run_obj._save_data(data=self.run_obj.data, file_name=file_name)
+        self.run_obj._save_data(data=self.run_obj.data, file_name=file_name, data_directory=P.p['data_directory'])
 
         return self.run_obj
 
@@ -1951,6 +2007,20 @@ class ExperimentsParallel:
         for i in range(n_workers):
             self.parameters.append({'experiment':kwargs['experiment']})
 
+        return self.parameters
+
+    def exp_branch_sequence(self, **kwargs):
+        '''
+        '''
+        self.parameters = []
+        n_workers = 9
+        trials_per_worker=1
+        field = [[-20], [-10],[-5], [-1],[0], [1], [5],[10], [20]]
+        for i in range(n_workers):
+            self.parameters.append(
+                {'experiment':kwargs['experiment'],
+                'field':field[i],
+                })
         return self.parameters
 
     def exp_1a1(self, **kwargs):
@@ -2336,4 +2406,4 @@ def _run_parallel(parameters):
 
 if __name__ =="__main__":
     # Experiment(experiment='exp_1a1', trials=1, syn_dist=[0,200], syn_num=[8])
-    _run_parallel(ExperimentsParallel('exp_4a1_poisson').parameters)
+    _run_parallel(ExperimentsParallel('exp_branch_sequence').parameters)
