@@ -158,7 +158,9 @@ class VarFuncs:
                 if 'ac_field' in key:
                     df_new[key]=val
 
+        # create columns for parameters in p
         if 'params' in kwargs:
+            # Store all parameters
             if kwargs['params']==None or kwargs['params']=='all':
                 for param in pre[var]['p'].keys():
                     if param not in df_new:
@@ -174,6 +176,7 @@ class VarFuncs:
                                 df_new.at[i,param] = value
 
             else:
+                # store specified parameters
                 for param in kwargs['params']:
                     if param not in df_new:
                         df_new[param]=None
@@ -569,10 +572,13 @@ class VarGen:
         df = analysis._load_group_data(directory=directory,filename=variable)
         # df = df.reset_index()
         df_copy = copy.deepcopy(df)
+
         # print sorted(df.keys())
         df = self._process_new_data_df(group_df=df, preprocessed_directory=directory, functions=functions, kwlist=kwlist, rerun=rerun, keep=keep, file_limit=file_limit, **kwargs)
+        # print df
+        # print df_copy.equals(df)
 
-        df = analysis._save_group_data(df=df, directory=directory, variable=variable, extension='.pkl', check_against=df_copy, **kwargs)
+        df = analysis._save_group_data(df=df, directory=directory, variable=variable, extension='.pkl', check_against=None, **kwargs)
 
         # # get size of df
         # #---------------------------

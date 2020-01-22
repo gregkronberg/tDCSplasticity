@@ -109,6 +109,132 @@ def _get_seg_location_from_sec(self, sec):
                 seg_z.append( interpz)
     return [seg_x, seg_y, seg_z]  
 
+def _set_branch_nseg(geo, sec_idx, seg_L):
+    """ set number of segments for branch that was selected to activate synapses
+    
+    arguments:
+
+    """
+
+    # iterate over trees in section list
+    for tree_key, tree in sec_idx.iteritems():
+
+        for sec_i, sec in enumerate(tree):
+
+            section = geo[tree_key][sec]
+
+            # get section length
+            sec_L = section.L
+            print 'section length', section.L
+
+            # determine number of segments
+            n_seg = int(np.ceil(sec_L/seg_L))
+
+            # # check that number of segments is odd
+            if n_seg % 2 != 0:
+                n_seg+=1
+
+            # # set number of segments
+            section.nseg = n_seg
+            print 'nseg', section.nseg
+    return geo
+
+def _update_synapses_after_nseg(p, geo, syns, sec_idx):
+    '''
+    '''
+    # mechanisms that vary with distance from soma
+                    # loop over segments
+
+    for tree_key, tree in sec_idx.iteritems():
+        for sec_i, sec in enumerate(tree):
+            syns[tree_key][sec]=[]
+            for seg_i,seg in enumerate(geo[tree_key][sec]):
+                
+                # print seg_i
+                syns[tree_key][sec].append({'ampa':[],
+                'nmda':[],
+                'clopath':[]})
+
+                for syn_key,syn in syns[tree_key][sec][seg_i].iteritems():
+                    
+                    if syn_key is 'ampa':
+                        
+                        # adapting exponential synapse based on model in Varela et al. 1997
+                        syns[tree_key][sec][seg_i][syn_key] = h.FDSExp2Syn_D3(geo[tree_key][sec](seg.x))
+                        syns[tree_key][sec][seg_i][syn_key].f = p['f_ampa']
+                        syns[tree_key][sec][seg_i][syn_key].tau_F = p['tau_F_ampa']
+                        syns[tree_key][sec][seg_i][syn_key].d1 = p['d1_ampa']
+                        syns[tree_key][sec][seg_i][syn_key].tau_D1 = p['tau_D1_ampa']
+                        syns[tree_key][sec][seg_i][syn_key].d2 = p['d2_ampa']
+                        syns[tree_key][sec][seg_i][syn_key].tau_D2 = p['tau_D2_ampa']
+                        syns[tree_key][sec][seg_i][syn_key].d3 = p['d3_ampa']
+                        syns[tree_key][sec][seg_i][syn_key].tau_D3 = p['tau_D3_ampa']
+
+                        # regular double exponential synapse
+                        # syns[tree_key][sec_i][seg_i][syn_key] = h.Exp2Syn(sec(seg.x))
+                        # syns[tree_key][sec_i][seg_i][syn_key].tau1 = p['tau1_ampa']
+                        # syns[tree_key][sec_i][seg_i][syn_key].tau2 = p['tau2_ampa']
+                        # syns[tree_key][sec_i][seg_i][syn_key].i = p['i_ampa']
+                        # print syn
+
+                    elif syn_key is 'nmda':
+                        # print syn_key
+                        syns[tree_key][sec][seg_i][syn_key]= h.Exp2SynNMDA(geo[tree_key][sec](seg.x))
+                        syns[tree_key][sec][seg_i][syn_key].tau1 = p['tau1_nmda']
+                        syns[tree_key][sec][seg_i][syn_key].tau2 = p['tau2_nmda']
+                        # print syn
+
+                    elif syn_key is 'clopath':
+                        # print syn_key
+                        syns[tree_key][sec][seg_i][syn_key] = h.STDPSynCCNon(geo[tree_key][sec](seg.x))
+    return syns
+
+def _get_terminal_branches(geo):
+    '''
+    '''
+    terminal_branches = {}
+    for tree_key, tree in geo.iteritems():
+        terminal_branches[tree_key]=[]
+        for sec_i, sec in enumerate(tree):
+            secref = h.SectionRef(sec=sec)
+            if secref.nchild()==0:
+                terminal_branches[tree_key].append(sec_i)
+    return terminal_branches
+
+def _choose_seg_from_branch(geo, sec_idx):
+    '''
+    '''
+    syn_idx_unique = []
+    syn_count_unique=[]
+    for tree_key, tree in sec_idx.iteritems():
+        for sec_i, sec in enumerate(tree):
+            for seg_i, seg in enumerate(geo[tree_key][sec]):
+                location = (tree_key, sec, seg_i)
+                syn_idx_unique.append(location)
+                syn_count_unique.append(1)
+
+    return syn_idx_unique, syn_count_unique
+
+def _set_sequence_delays(self, syn_idx, delay):
+        ''' set delays for synapses specified by syn_idx
+        ==Args==
+        -syn_idx : list of activated synapse locations
+        -delay : delay between synapses in syn_idx
+                -same delay is applied to each synapse
+                -FIXME add ability to specify different delays for each synapse
+        ==Out==
+        -delays : list of delays (from start of simulation) for input to each synapse in syn_idx
+        ==Updates==
+        ==Comments==
+        
+        '''
+        delays=[]
+        for seg_i, seg in enumerate(syn_idx):
+            seg_delay = seg_i*delay
+            delays.append(seg_i*delay)
+
+        return delays
+
 class IPS:
     '''
     Intersectional Pulsed Stimulation from Buzsaki lab
@@ -542,6 +668,7 @@ class Uncage:
 
         # syn_idx_unique=list(set(p_path['syn_idx']))
         # iterate over segments to be activated
+        print p_path['syn_idx']
         for seg_i, seg in enumerate(p_path['syn_idx']):
 
             # add dimension for segments
@@ -549,7 +676,7 @@ class Uncage:
 
             # get segment location info
             tree, sec_num, seg_num = seg
-
+            print seg
             # iterate over synapse types
             for syntype_key,syntype in syns[tree][sec_num][seg_num].iteritems():
 

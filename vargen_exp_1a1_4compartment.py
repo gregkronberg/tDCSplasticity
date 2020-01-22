@@ -79,7 +79,7 @@ def _w_clopath(vtrace_df, vargen_functions):
     w_clopath_df.to_pickle(directory+filename)
     return w_clopath_df
 
-w_clopath_df=_w_clopath(vtrace_df, vargen_functions)
+# w_clopath_df=_w_clopath(vtrace_df, vargen_functions)
 
 # get dcs effect on final weights
 #---------------------------------

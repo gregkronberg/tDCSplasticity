@@ -336,11 +336,11 @@ class Param(object):
             # equivalent cylinder parameters determined by cell.DendriteTransform() of Migliore cell geo5038804.hoc
             'L_basal' : 1600.,
             'L_soma' : 7.5,
-            'L_apical_prox' : 1000.,
-            'L_apical_dist' : 1000.,
+            'L_apical_prox' : 900.,
+            'L_apical_dist' : 900.,
             'diam1_basal' : 1.9,
             'diam1_soma' : 7.5,
-            'diam1_apical_prox' : 2.75,
+            'diam1_apical_prox' :  2.75,
             'diam1_apical_dist' : 2.75,
             'diam2_basal' : 1.9,
             'diam2_soma' : 7.5,
@@ -481,8 +481,8 @@ class Param(object):
             'RaAx' : 50.,                   # axial resistance, axon (ohm*cm)                   
             'RmAll' : 28000.,           # specific membrane resistance (ohm/cm2)
             'Cm' : 1.,                  # specific membrane capacitance (uf/cm2)
-            'ka_grad' : .2,#1.,#1.,#1.,             # slope of a-type potassium channel gradient with distance from soma 
-            'ghd_grad' : 1,#1.,#3.,                # slope of h channel gradient with distance from soma
+            'ka_grad' : .1,#1.,#1.,#1.,             # slope of a-type potassium channel gradient with distance from soma 
+            'ghd_grad' : .1,#1.,#3.,                # slope of h channel gradient with distance from soma
             'ka_cutoff_distance': 350, # distance from soma where ka stops increasing (um)
             'ghd_cutoff_distance': 350, # distance from soma where Ih stops increasing (um)
         }
