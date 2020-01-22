@@ -140,27 +140,39 @@ def _set_branch_nseg(geo, sec_idx, seg_L):
     return geo
 
 def _update_synapses_after_nseg(p, geo, syns, sec_idx):
+    ''' if nseg is updated on a branch, synapses need to be reinserted
+    ==Args==
+    -p : parameter dictionary
+    -geo : cell geometry object containing hoc sections and segments
+    -syns : cell synapse structure containing synapses as hoc point processes
+    -sec_idx : indicates which sections to update synapses on as sec_idx[tree_key][section index]
+    ==Return==
+    -syns : updated synapse object
+    ==Update==
+    -syns : reinserts synaptic point processes and updates syns to match the current number of segments in the section specified by sec_idx
+    ==Comment==
     '''
-    '''
-    # mechanisms that vary with distance from soma
-                    # loop over segments
-
+    # iterate over trees
     for tree_key, tree in sec_idx.iteritems():
+        # iterate over sections
         for sec_i, sec in enumerate(tree):
+            # re-initialize the list of synapses
             syns[tree_key][sec]=[]
+            # iterate over segments
             for seg_i,seg in enumerate(geo[tree_key][sec]):
-                
-                # print seg_i
+                # add dictionary key for each type of synapse
                 syns[tree_key][sec].append({'ampa':[],
                 'nmda':[],
                 'clopath':[]})
-
+                # iterate over types of synapses
                 for syn_key,syn in syns[tree_key][sec][seg_i].iteritems():
-                    
+                    # ampa
                     if syn_key is 'ampa':
                         
                         # adapting exponential synapse based on model in Varela et al. 1997
+                        # insert point process and store in syns
                         syns[tree_key][sec][seg_i][syn_key] = h.FDSExp2Syn_D3(geo[tree_key][sec](seg.x))
+                        # update parameters
                         syns[tree_key][sec][seg_i][syn_key].f = p['f_ampa']
                         syns[tree_key][sec][seg_i][syn_key].tau_F = p['tau_F_ampa']
                         syns[tree_key][sec][seg_i][syn_key].d1 = p['d1_ampa']
@@ -169,35 +181,42 @@ def _update_synapses_after_nseg(p, geo, syns, sec_idx):
                         syns[tree_key][sec][seg_i][syn_key].tau_D2 = p['tau_D2_ampa']
                         syns[tree_key][sec][seg_i][syn_key].d3 = p['d3_ampa']
                         syns[tree_key][sec][seg_i][syn_key].tau_D3 = p['tau_D3_ampa']
-
-                        # regular double exponential synapse
-                        # syns[tree_key][sec_i][seg_i][syn_key] = h.Exp2Syn(sec(seg.x))
-                        # syns[tree_key][sec_i][seg_i][syn_key].tau1 = p['tau1_ampa']
-                        # syns[tree_key][sec_i][seg_i][syn_key].tau2 = p['tau2_ampa']
-                        # syns[tree_key][sec_i][seg_i][syn_key].i = p['i_ampa']
-                        # print syn
-
+                    # nmda
                     elif syn_key is 'nmda':
-                        # print syn_key
+                        # insert point process and store in syns
                         syns[tree_key][sec][seg_i][syn_key]= h.Exp2SynNMDA(geo[tree_key][sec](seg.x))
+                        # update parameters
                         syns[tree_key][sec][seg_i][syn_key].tau1 = p['tau1_nmda']
                         syns[tree_key][sec][seg_i][syn_key].tau2 = p['tau2_nmda']
                         # print syn
 
                     elif syn_key is 'clopath':
-                        # print syn_key
+                        # clopath
+                        # insert point process and store in syn
                         syns[tree_key][sec][seg_i][syn_key] = h.STDPSynCCNon(geo[tree_key][sec](seg.x))
     return syns
 
 def _get_terminal_branches(geo):
-    '''
+    ''' get sections that correspond to dendritic branch terminals
+    ==Args==
+    -geo : cell geometry object containing hoc sections and segments
+    ==Return==
+    -terminal_branches : sections that correspond to terminal branches as terminal_branches[tree_key][section number]
+    ==Update==
+    ==Comments==
+    -terminal branhces are determined based on the section having no children.  This may not be the most general way of finding branches
     '''
     terminal_branches = {}
+    # iterate over trees
     for tree_key, tree in geo.iteritems():
         terminal_branches[tree_key]=[]
+        # iterate over sections
         for sec_i, sec in enumerate(tree):
+            # create hoc sectioref object
             secref = h.SectionRef(sec=sec)
+            # if section has no children, it is assumed to be a terminal 
             if secref.nchild()==0:
+                # add to list of terminal branches in the current tree
                 terminal_branches[tree_key].append(sec_i)
     return terminal_branches
 

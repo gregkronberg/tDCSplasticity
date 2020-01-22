@@ -1734,23 +1734,20 @@ class Experiment:
 
         return P
 
-    def _update_synapse_parameters_sequence(self, P, cell, method='_choose_seg_rand', reverse=False, **kwargs):
-        ''' update parameter dictionaries for each pathway before running simulation
+    def _update_synapse_parameters_sequence(self, P, cell, method='_choose_seg_from_branch', reverse=False, **kwargs):
+        ''' update parameter dictionaries for each pathway before running simulation specifically for branch sequence 
 
         ===Args===
-        -p_class    : instance of default parameter class, containing parameter dictionaries and methods for updating parameters for simulations
-        -p          : full parameter dictionary
-        -paths      : parameter dictionary for separate synaptic pathways, organized as paths{path name}{parameters}
-        cell1       : instance of cell class containing geometry and synapse structures (contain all hoc section and synapse objects)
-
-        ===Out===
-
+        -P : parameter class object
+        -cell : cell object
+        -method : method for choosing active synapses
+        -reverse : reverses sequence order
+        ===Return===
+        -P : updated parameter object
         ===Updates===
         -p          : updated path dictionaries are added to the main parameter dictionary p (organized as p['p_path']{path name}{parameters})
         -paths      : active synapses and their activity patterns are set and updated for each path
-
         ===Comments===
-        -p  : p should have an entry called 'path_combo', which is a list of paths to be activated during the current simulation
         '''
         p_class=P
         p = P.p
