@@ -486,6 +486,7 @@ class Param(object):
             'ka_cutoff_distance': 350, # distance from soma where ka stops increasing (um)
             'ghd_cutoff_distance': 350, # distance from soma where Ih stops increasing (um)
         }
+    
     def _set_sequence_delays(self, syn_idx, delay):
         ''' set delays for synapses specified by syn_idx
         ==Args==
@@ -653,6 +654,7 @@ class Param(object):
 
         # syn_unique = list(set(syn_idx))
         for seg_i, seg in enumerate(syn_idx):
+
 
             tree, sec_num, seg_num = seg
             repeats = syn_counts[seg_i]

@@ -52,7 +52,7 @@ class Experiment:
         -field : 0, 1, 5, 10, 20 (positive and negative)
         -branches : first five branches in eahc tree
         -sequence delays : 1, 2, 5, 10, ms between activation of neighboring segments (segments are ~10 um apart)
-        -synaptic weights : .001, .0015 
+        -synaptic weights : .001, .0015, .002
         '''
         # updates to global parameter dictionary 
         p_update = {
@@ -62,7 +62,7 @@ class Experiment:
         'rec_variables':[('v','range','v'), ('i','syn','nmda')],
         'active_paths':['1',],
         'gcalbar': 1.*.00125 ,          # L-type calcium conductance from Kim et al. 2015 (mho/cm2)
-        'branch_seg_L':10
+        'branch_seg_L':5
         }
 
         # set up synaptic pathway parameters
@@ -83,7 +83,9 @@ class Experiment:
         'syn_frac':0.,
         'noise':0,
         'delay':.1, 
-        'sequence_direction':'in'
+        'sequence_direction':'in',
+        'nmda_ampa_ratio':3.,
+        'syn_limit':6
         },}
 
         # setup cell and updated parameter structures
@@ -97,10 +99,10 @@ class Experiment:
         # get sections with terminal branches
         terminal_branches = stims._get_terminal_branches(self.cell.geo)
         # maximum branches to simulate per tree
-        max_branches = 5
-        delays = [ 1, 2, 5, 10]
+        max_branches = 1
+        delays = [ 2, 5,]
         directions = ['in','out']
-        weights = [.001, .0015]
+        weights = [.0025]
         # iterate over branches
         for tree_key, branch_sec in terminal_branches.iteritems():
             if tree_key!='soma' and tree_key!='axon':
@@ -1826,12 +1828,19 @@ class Experiment:
                 cell.syns = stims._update_synapses_after_nseg(p, cell.geo, cell.syns, sec_idx)
                 # choose segments to activate
                 path['syn_idx'], path['syn_counts'] = stims._choose_seg_from_branch(cell.geo, sec_idx)
+
+                if 'syn_limit' in path:
+                    if len(path['syn_idx'])>path['syn_limit']:
+                        # print path['syn_idx']
+                        path['syn_idx'] = path['syn_idx'][:path['syn_limit']]
+                        path['syn_counts'] = path['syn_counts'][:path['syn_limit']]
                 # path['syn_idx']=path['syn_idx'][:3]
                 # path['syn_counts']=path['syn_counts'][:3]
+
                 if reverse:
                     path['syn_idx'].reverse()
                     path['syn_counts'].reverse()
-                print path['syn_idx']
+
                 # set delays
                 path['sequence_delays'] = p_class._set_sequence_delays(syn_idx=path['syn_idx'], delay=path['delay'])
                 # set weights for each segment in this pathway

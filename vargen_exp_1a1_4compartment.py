@@ -24,7 +24,7 @@ def _vtrace(vargen_funcs=vargen_funcs):
     filename=variable+'.pkl'
     functions=[varfuncs._get_vtrace]
     kwlist=[{'params':None}]
-    rerun=[varfuncs._get_vtrace]
+    rerun=[]#[varfuncs._get_vtrace]
     keep=[]
     file_limit=[]
     vtrace_df = vargen_funcs._vargen(variable=variable, directory=directory, functions=functions, kwlist=kwlist, rerun=rerun, keep=keep, file_limit=file_limit)

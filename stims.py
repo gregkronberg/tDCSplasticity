@@ -715,8 +715,17 @@ class Uncage:
                 # iterate over bursts in stim
                 for burst_i, burst in enumerate(stim[seg_i]):
 
+                    # weight the current segment (uS)
+                    weight = p_path['w_idx'][seg_i]
+
+                    # set nmda to ampa ratios
+                    if syntype =='nmda':
+                        if 'nmda_ampa_ratio' in p_path:
+                            weight=p_path['nmda_ampa_ratio']*p_path['w_idx'][seg_i]
+
+
                     # create netcon object
-                    netcon = h.NetCon(burst, syntype, 0, 0, p_path['w_idx'][seg_i])
+                    netcon = h.NetCon(burst, syntype, 0, 0, weight)
 
 
                     # add netcon object to list
