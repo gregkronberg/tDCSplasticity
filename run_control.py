@@ -62,7 +62,9 @@ class Experiment:
         'rec_variables':[('v','range','v'), ('i','syn','nmda')],
         'active_paths':['1',],
         'gcalbar': 1.*.00125 ,          # L-type calcium conductance from Kim et al. 2015 (mho/cm2)
-        'branch_seg_L':5
+        'branch_seg_L':10, 
+        'dgna':-.0001,
+        'AXONM':10
         }
 
         # set up synaptic pathway parameters
@@ -85,7 +87,7 @@ class Experiment:
         'delay':.1, 
         'sequence_direction':'in',
         'nmda_ampa_ratio':3.,
-        'syn_limit':6
+        'syn_limit':8
         },}
 
         # setup cell and updated parameter structures
@@ -100,9 +102,9 @@ class Experiment:
         terminal_branches = stims._get_terminal_branches(self.cell.geo)
         # maximum branches to simulate per tree
         max_branches = 1
-        delays = [ 2, 5,]
+        delays = [ 4, ]
         directions = ['in','out']
-        weights = [.0025]
+        weights = kwargs['weight']
         # iterate over branches
         for tree_key, branch_sec in terminal_branches.iteritems():
             if tree_key!='soma' and tree_key!='axon':
@@ -2024,12 +2026,15 @@ class ExperimentsParallel:
         self.parameters = []
         n_workers = 9
         trials_per_worker=1
-        field = [[-20], [-10],[-5], [-1],[0], [1], [5],[10], [20]]
-        for i in range(n_workers):
-            self.parameters.append(
-                {'experiment':kwargs['experiment'],
-                'field':field[i],
-                })
+        fields = [[-20], [0],  [20]]
+        weights = [[.0045],[.005],[.0055]]
+        for i, field in enumerate(fields):
+            for i, weight in enumerate(weights):
+                self.parameters.append(
+                    {'experiment':kwargs['experiment'],
+                    'field':field,
+                    'weight':weight,
+                    })
         return self.parameters
 
     def exp_1a1(self, **kwargs):

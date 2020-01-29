@@ -690,19 +690,76 @@ class BuildFigDF:
         # conditions for each figure
         #----------------------------
         figdict = {
-            '20Hz':{
+            'control basal':{
+                # subgroup
+                '0Vm':[
+                    # trace
+                    (8, 3, 10, 4L, .0055, 'out', 0L, 'soma', '{\'basal\': [3]}', ),
+                    (8, 3, 10, 4L, .0055, 'in', 0L, 'soma','{\'basal\': [3]}', )
+                ],
+            },
+            'anodal basal':{
                 # subgroup
                 '20Vm':[
                     # trace
-                    # (5, .001, 'out', -10, 'soma','{\'apical_tuft\':[6]}'),
-                    # (5, .001, 'in', -10, 'soma','{\'apical_tuft\':[6]}')
-                    # (10L, .001, 'out', -10L, 'soma','{\'apical_tuft\': [6]}'),
-                    # (10L, .001, 'in', -10L, 'soma','{\'apical_tuft\': [6]}')
-                    (6, 3, 5, 5L, .002, 'out', 0L, 'soma', '{\'basal\': [3]}', ),
-                    (6, 3, 5, 5L, .002, 'in', 0L, 'soma','{\'basal\': [3]}', )
-                    # ((6,8,10,12), -20, 'basal' 'basal' 'basal'  ),
-                    # ((6,8,10,12), 20,'basal' 'basal' 'basal' ),
-                    # ((6,8,10,12), 0, 'basal' 'basal' 'basal' ),
+                    (8, 3, 10, 4L, .0055, 'out', 20L, 'soma', '{\'basal\': [3]}', ),
+                    (8, 3, 10, 4L, .0055, 'in', 20L, 'soma','{\'basal\': [3]}', )
+                ],
+            },
+            'cathodal basal':{
+                # subgroup
+                '20Vm':[
+                    # trace
+                    (8, 3, 10, 4L, .0055, 'out', -20L, 'soma', '{\'basal\': [3]}', ),
+                    (8, 3, 10, 4L, .0055, 'in', -20L, 'soma','{\'basal\': [3]}', )
+                ],
+            },
+            'control apical':{
+                # subgroup
+                '0Vm':[
+                    # trace
+                    (8, 3, 10, 4L, .0055, 'out', 0L, 'soma', '{\'apical_tuft\': [0]}', ),
+                    (8, 3, 10, 4L, .0055, 'in', 0L, 'soma','{\'apical_tuft\': [0]}', )
+                ],
+            },
+            'anodal apical':{
+                # subgroup
+                '20Vm':[
+                    # trace
+                    (8, 3, 10, 4L, .0055, 'out', 20L, 'soma', '{\'apical_tuft\': [0]}', ),
+                    (8, 3, 10, 4L, .0055, 'in', 20L, 'soma','{\'apical_tuft\': [0]}', )
+                ],
+            },
+            'cathodal apical':{
+                # subgroup
+                '20Vm':[
+                    # trace
+                    (8, 3, 10, 4L, .0055, 'out', -20L, 'soma', '{\'apical_tuft\': [0]}', ),
+                    (8, 3, 10, 4L, .0055, 'in', -20L, 'soma','{\'apical_tuft\': [0]}', )
+                ],
+            },
+            'control apical trunk':{
+                # subgroup
+                '0Vm':[
+                    # trace
+                    (8, 3, 10, 4L, .0055, 'out', 0L, 'soma', '{\'apical_trunk\': [18]}', ),
+                    (8, 3, 10, 4L, .0055, 'in', 0L, 'soma','{\'apical_trunk\': [18]}', )
+                ],
+            },
+            'anodal apical trunk':{
+                # subgroup
+                '20Vm':[
+                    # trace
+                    (8, 3, 10, 4L, .0055, 'out', 20L, 'soma', '{\'apical_trunk\': [18]}', ),
+                    (8, 3, 10, 4L, .0055, 'in', 20L, 'soma','{\'apical_trunk\': [18]}', )
+                ],
+            },
+            'cathodal apical trunk':{
+                # subgroup
+                '20Vm':[
+                    # trace
+                    (8, 3, 10, 4L, .0045, 'out', -20L, '{\'apical_trunk\': [18]}', ),
+                    (8, 3, 10, 4L, .0045, 'in', -20L, '{\'apical_trunk\': [18]}', )
                 ],
             },
             # '20Hz_6syn':{
