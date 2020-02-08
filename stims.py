@@ -357,7 +357,7 @@ class ACS:
                 # calculate extracellular potential
                 e = conversion*intensity*mag*np.cos(angle_field)
 
-                e_vec = e*np.sin(phase + 2*np.pi*(freq/1000)*t)
+                e_vec = e*np.sin(phase + 2*np.pi*(freq/1000.)*t)
 
                 e_vec[t<field_on]=0.
                 e_vec[t>=field_off]=0.

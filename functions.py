@@ -55,6 +55,7 @@ def _initialize_column(df, col, val=None):
         if col_name not in df:
             df[col_name]=val
     return df
+
 def _default_figdf():
         '''
         '''
@@ -1000,7 +1001,7 @@ class VarFuncs:
 
         return df_new
 
-class VarGen:
+class VarGen(object):
     ''' apply VarFuncs to generate group variables
     '''
     def __init__(self, ):

@@ -44,7 +44,7 @@ dffuncs = fncs.DfFuncs()
 # load variables
 #############################################################################
 _g = globals()
-def _load_variables(variables, variables_reload=[], extension='.pkl'):
+def _load_variables(variables, global_variables=globals(), variables_reload=[], extension='.pkl'):
     '''
     '''
     for variable in variables:
@@ -53,7 +53,7 @@ def _load_variables(variables, variables_reload=[], extension='.pkl'):
         if (variable in variables_reload) or not exists :
             filename = variable
             _g[variable]=fncs._load_group_data(directory=directory, filename=filename)
-_load_variables(variables, variables_reload=variables_reload)
+_load_variables(variables=variables, global_variables=_g, variables_reload=variables_reload)
 
 #####################################################################
 # average voltage trace, weak path dendrites in paired vs unpaired

@@ -44,6 +44,7 @@ class Experiment:
         EXPERIMENT 1
         Distance and synapse number dependence of DCS effects
         """
+    
     def exp_branch_sequence(self, **kwargs):
         ''' simulate sequences of inputs on various dendritic branches as in Branco and Hausser 2010
 
