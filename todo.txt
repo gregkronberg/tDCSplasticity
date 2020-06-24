@@ -1,5 +1,9 @@
 to do
 
+-install mpi4py on laptop
+-setup synapses so that multiple independent synapse objects can be inserted in the same segment
+-simulate poisson inputs as a function of distance from soma in full and reduced model 
+
 -analysis module
 	-add comments
 	-detect peak voltage in a given section

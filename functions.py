@@ -28,15 +28,39 @@ from matplotlib import cm as colormap
 import inspect
 from matplotlib.ticker import FormatStrFormatter
 import matplotlib.ticker as ticker
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import pdb
 import sys
 from sys import getsizeof, stderr
 from collections import deque
+import uuid
+import datetime
 
 
 #############################################################################
 # common functions
 #############################################################################
+def _set_index(df, columns):
+    '''
+    '''
+    if columns is None or (type(columns==list) and len(columns)==0):
+        if type(df.index)!=pd.RangeIndex:
+            df = df.reset_index()
+
+    elif type(df.index)!=pd.RangeIndex:      
+        df = df.reset_index().set_index(columns)
+    else:
+        df = df.set_index(columns)
+    return df
+
+def _generate_trial_id():
+        '''
+        '''
+        # create unique identifier for each trial
+        uid = str(uuid.uuid1().int)[-5:]
+        now = datetime.datetime.now()
+        trial_id = '-'.join(['{:04d}'.format(now.year), '{:02d}'.format(now.month), '{:02d}'.format(now.day), '{:02d}'.format(now.hour), '{:02d}'.format(now.minute), '{:02d}'.format(now.second), '{:02d}'.format(now.microsecond), uid])
+        return trial_id
 # check if dataframe exists in namespace
 def _exists(variable):
     '''
@@ -57,28 +81,28 @@ def _initialize_column(df, col, val=None):
     return df
 
 def _default_figdf():
-        '''
-        '''
-        all_dict={
-        # hide the top and right axes boundaries
-            'fig_dpi':350,
-            'fig_boxoff':True,
-            # axes and tick labels
-            'fig_axes_linewidth':[4],
-            'fig_xlabel_fontsize':[25],#'xx-large',#[25],
-            'fig_ylabel_fontsize':[25],#'xx-large',#[25],
-            'fig_xlabel_fontweight':[1000],#'extra bold',
-            'fig_ylabel_fontweight':[1000],#'extra bold',
-            'fig_xtick_fontsize':[20],#'large',#[15],
-            'fig_ytick_fontsize':[20],#'large',#[15],
-            'fig_xtick_fontweight':[1000], #'extra bold',#'light', #1000, #'heavy',
-            'fig_ytick_fontweight':[1000],# 'extra bold',#'light', #1000,#'heavy',
-            # figure tight layout
-            'fig_tight_layout':True,
-        }
-        all_df = pd.DataFrame(all_dict, dtype='object')
+    '''
+    '''
+    all_dict={
+    # hide the top and right axes boundaries
+        'fig_dpi':350,
+        'fig_boxoff':True,
+        # axes and tick labels
+        'fig_axes_linewidth':[4],
+        'fig_xlabel_fontsize':[25],#'xx-large',#[25],
+        'fig_ylabel_fontsize':[25],#'xx-large',#[25],
+        'fig_xlabel_fontweight':[1000],#'extra bold',
+        'fig_ylabel_fontweight':[1000],#'extra bold',
+        'fig_xtick_fontsize':[20],#'large',#[15],
+        'fig_ytick_fontsize':[20],#'large',#[15],
+        'fig_xtick_fontweight':[1000], #'extra bold',#'light', #1000, #'heavy',
+        'fig_ytick_fontweight':[1000],# 'extra bold',#'light', #1000,#'heavy',
+        # figure tight layout
+        'fig_tight_layout':True,
+    }
+    all_df = pd.DataFrame(all_dict, dtype='object')
 
-        return all_df
+    return all_df
 
 def _input_times_2array(input_times, t, t_precision=4, **kwargs):
     '''
@@ -86,6 +110,7 @@ def _input_times_2array(input_times, t, t_precision=4, **kwargs):
     ---------
     ~input_times: nested list of input times [location number][list of input times]
     '''
+    # print 'input_times,',input_times
     # number of locations with input times
     n_locs = len(input_times)
     # number of time steps
@@ -440,6 +465,7 @@ def _save_group_data(df, directory, variable, extension='.pkl', size_limit=5E7, 
             n_dfs=nsplit
             df_split = np.array_split(df, n_dfs)
             for df_i, df_chunk in enumerate(df_split):
+                print 'chunk ', df_i, ', size: ', df_chunk.shape
                 if extension=='.pkl':
                     # print df_chunk
                     df_chunk.to_pickle(directory+variable+'_'+str(df_i)+extension)
@@ -498,9 +524,21 @@ def _to_1sigfig(num, minimum=True):
 def _2array(series, remove_nans=True, remove_nans_axis=0, list_index=0, array_funcs=[], array_func_kws=[]):
     '''
     '''
+    # print 'series_type', type(series)
+    # if type(series)==np.float64:
+    #     array = np.array([series])
+    #     return array
+    # else:
+    # print series
     if remove_nans:
         series = series.dropna()
-    series_list = series.tolist()
+    try:
+        series_list = series.tolist()
+    except:
+        # print 'converting df to series'
+        series = series[series.columns[0]]
+        # print series
+        series_list = series.tolist()
     # if there are nans in a row, fill whole row with nans
     #-------------------------------------------------------
     if not remove_nans:
@@ -760,10 +798,26 @@ def _total_size(o, handlers={}, verbose=False):
 
     return sizeof(o)
 
+def copy_neuron_section_mechanisms(origin, target):
+    ''' copy mechanisms and parameter values from one section to another
+    '''
+
+    seg = origin(0.5)
+    mechs = [_mech.name() for _mech in seg]
+    ms={}
+    for mech in mechs: 
+        ms[mech] = h.MechanismStandard(mech)
+        params = [_key for _key in dir(getattr(seg, mech)) if '_'+mech in _key]
+        param_vals = [getattr(seg, _param) for _param in params]
+        for param_i ,param in enumerate(params):
+            if type(param_vals[param_i]) is float:
+                ms[mech].set(param, param_vals[param_i])
+        target.insert(mech)
+        ms[mech].out(sec=target)
 #############################################################################
 # variable generation for group level analysis
 #############################################################################
-class VarFuncs:
+class VarFuncs(object):
     ''' extract higher level analysis variables from individual cells/experiments.  outputs should be a dataframe for each preprocessed file, which are then combined (see VarGen) into a single dataframe for all experiments.
     '''
     def __init__(self, ):
@@ -1423,7 +1477,7 @@ class VarGen(object):
         '''
         '''
         filename = variable+write_protocol
-        df = analysis._load_group_data(directory=directory,filename=variable)
+        df = _load_group_data(directory=directory,filename=variable)
         # df = df.reset_index()
         df_copy = copy.deepcopy(df)
 
@@ -1432,7 +1486,7 @@ class VarGen(object):
         # print df
         # print df_copy.equals(df)
 
-        df = analysis._save_group_data(df=df, directory=directory, variable=variable, extension='.pkl', check_against=None, **kwargs)
+        df = _save_group_data(df=df, directory=directory, variable=variable, extension='.pkl', check_against=None, **kwargs)
 
         # # get size of df
         # #---------------------------
@@ -1609,7 +1663,7 @@ class DfFuncs:
 
         return df
 
-    def _get_w_clopath(self, vtrace_df, clopath_param, split_columns=[], rerun=False,**kwargs):
+    def _get_w_clopath(self, vtrace_df, clopath_param, w_df=None, split_columns=[], rerun=False,**kwargs):
         ''' run clopath algorithm to get synaptic weight evolution for entire df
 
         Arguments
@@ -1625,32 +1679,34 @@ class DfFuncs:
                 ~w_initial: initial value
                 ~dw_clopath: final/initial
         '''
+
+
         # print progress to terminal
         print 'applying df function:', inspect.stack()[0][3]
-        def _get_w(df, clopath_param):
+        def _get_w(df, clopath_param,**kwargs):
             '''
             '''
             # create voltage array
-            v = analysis._2array(df.data_v)
+            v = _2array(df.data_v)
+            # print 'v shape',v
             # drop voltage data
             df = df.drop('data_v', axis=1)
             # fill input times with nan and get values
-            input_times = df.input_times.fillna(value=np.nan).values
+            if 'input_times_key' in kwargs:
+                input_times = df[kwargs['input_times_key']].fillna(value=np.nan).values
+            else:
+                input_times = df.input_times.fillna(value=np.nan).values
             # create time vector from dt and tstop
             dt = df.dt.unique()[0]
             tstop = df.tstop.unique()[0]
-            # t = np.arange(0., tstop+dt, dt)
-            print v.shape[1]
-            # t = np.arange(0, dt*v.shape[1]-dt, dt)
             t = np.linspace(0, dt*v.shape[1], num=v.shape[1])
-            print t.shape
             # create input array
-            input_array = analysis._input_times_2array(input_times, t)
-            print v.shape, input_array.shape
+            input_array = _input_times_2array(input_times, t)
+            # print v.shape, input_array.shape
             # assert same shape for voltage and input arrays
             assert v.shape==input_array.shape, 'input array and voltage array must be same shape'
             # run clopath algorithm to get weights
-            w_clopath = analysis.Clopath()._clopath(x=input_array, u=v, fs=1/dt, w0=0.5, homeostatic=False, param=clopath_param)
+            w_clopath = Clopath()._clopath(x=input_array, u=v, fs=1/dt, w0=0.5, homeostatic=False, param=clopath_param)
             # preallocate column for storing weight time series
             if 'w_clopath' not in df:
                 df['w_clopath']=None
@@ -1662,11 +1718,47 @@ class DfFuncs:
                 df.at[i, 'dw_clopath'] = w_clopath[i,-1]/w_clopath[i,0]
             return df
         
-        # reset index and copy df
-        df = vtrace_df.reset_index().copy()
+        # set index
+        vtrace_df = _set_index(vtrace_df, None)
+        # get only new df entries
+        #-------------------------------------------
+        if not rerun:
+            # trial_id's in v_df
+            v_ids = vtrace_df.trial_id.unique()
+            # by default assume none have been processed
+            w_ids = []
+            # if w_df is passed as agrument, check for previously processed
+            if w_df is not None and 'trial_id' in w_df.columns:
+                w_ids = w_df.trial_id.unique()
+            # find new trial_ids
+            new_ids =  list(set(v_ids).difference(set(w_ids)))
+            # map for selecting new trial id's from v_df
+            new_map = vtrace_df['trial_id'].map(lambda x: x in new_ids)
+            # df of only new entries
+            v_df_new = vtrace_df[new_map]
+            # get copy to operate on
+            df = _set_index(v_df_new, None).copy()
+        # run on all v_df entries
+        #-----------------------
+        else:
+            df = _set_index(vtrace_df, None).copy()
+        
+        # print 'df', df.shape
+        # print 'w_df', w_df.shape
+        # print 'vtrace_df', vtrace_df.shape
+
+        # run cloapth algorithm
+        #----------------------------------------------------------------
+        if len(split_columns)==0:
+            df_new = _get_w(df=df, clopath_param=clopath_param, **kwargs)
+        # split df and run algorithm separately
+        #--------------------------------------
+        else:
+        #####################################################################
+        # FIXME if split columns is passed, these columns will actually be dropped from the output df because they are used to index
+        #####################################################################
         # if voltage traces are different length due to a set of parameters, split dataframe acccording to those parameters (so that voltage data can be made into an array, then recombine dataframes)
-        if len(split_columns)>0:
-            df = df.set_index(split_columns)
+            df = _set_index(df, split_columns)#df.set_index(split_columns)
             split_indices = df.index.unique().values
             df_new = pd.DataFrame()
             for index in split_indices:
@@ -1674,7 +1766,7 @@ class DfFuncs:
                 print 'df_new:', df_new.shape
                 df_temp = df.loc[index].copy()
                 df_temp.reset_index(inplace=True)
-                df_temp = _get_w(df=df_temp, clopath_param=clopath_param)
+                df_temp = _get_w(df=df_temp, clopath_param=clopath_param, **kwargs)
                 if df_new.empty:
                     print 'df_new empty'
                     df_new = df_temp.copy()
@@ -1683,10 +1775,20 @@ class DfFuncs:
                     df_new = df_new.append(df_temp, ignore_index=True)
                     print 'df_new:', df_new.shape
 
+        # print 'df_new', df_new.shape
+        # return updated w_df
+        #--------------------------------------------------------------
+        # add new w_df to original
+        #--------------------------
+        if w_df is not None and not rerun:
+            # print 'updating w_df'
+            w_df = _set_index(w_df, None)
+            w_df = w_df.append(df_new, ignore_index=True)
+            return w_df
+        # just return new
+        #---------------------------
         else:
-            df_new = _get_w(df=df, clopath_param=clopath_param)
-
-        return df_new
+            return df_new
 
     def _get_spikes(self, vtrace_df, threshold=-40, split_columns=[], **kwargs):
         ''' get spike times for each trace and store in df
@@ -1776,7 +1878,8 @@ class DfFuncs:
         # print progress to terminal
         print 'applying df function:', inspect.stack()[0][3]
         # reorganize dataframe
-        df = df.set_index(['trial_id','location','field'])
+        df = _set_index(df, ['location','field'])
+        # df = df.set_index(['trial_id','location','field'])
         # column name to add
         coladd = 'polarization'
         # if column doesn't exist or rerun is specified, process all rows
@@ -1795,18 +1898,27 @@ class DfFuncs:
                 # time point to measure polarization at
                 time_i = int(time/row['dt'])
                 # index of corresponding control trace
-                control_i = (row_i[0], row_i[1], 0.0,)
-                # print df.loc[control_i].data_v.drop_duplicates()
-                # get voltage value from control trace
-                control_val = df.loc[control_i].data_v.iloc[0][time_i]
-                # get voltage value for current trace
-                # print row['data_v']
-                val = row['data_v'][time_i]
-                # set value in 'polarization column'
-                df.at[row_i, 'polarization']=val-control_val
+                control_i = [(row_i[0], 0L,)]
+                # print control_i
+                # print df.index
+                # check for corresponding control trace
+                if any(df.index.isin(control_i)):
+                # if control_i in df.index:
+                    # get voltage value from control trace
+                    control_val = df.loc[control_i].data_v.iloc[0][time_i]
+                    # get voltage value for current trace
+                    # print row['data_v']
+                    val = row['data_v'][-1]
+                    # print val-control_val
+                    # set value in 'polarization column'
+                    df.at[row_i, 'polarization']=val-control_val
+                # otherwise nan
+                else:
+                    # set value in 'polarization column'
+                    df.at[row_i, 'polarization']=np.nan
         # if column already exists but some values haven't been processed
         #----------------------------------------------------------------
-        # FIXME apply this functionality to other df functions!!!!!!!!!!!!!!!
+        # FIXME apply this to other df functions!
         elif coladd in df and df[coladd].isnull().values.any():
             # get only unprocessed rows (index must match original df)
             df_temp = df[df[coladd].isnull()].copy()
@@ -2371,6 +2483,82 @@ class ApplyDF:
         kwargs = {'colnames':colnames, 'colkeys':colkeys, 'colkeys_exclude':colkeys_exclude, 'n':n}
         df = df.apply(_get_nth, axis=1, **kwargs)
         return df
+
+#############################################################################
+# figdf for specifying figure properties
+#############################################################################
+class BuildFigDF:
+    '''
+    '''
+    def __init__(self, ):
+        '''
+        '''
+        # set dpi for final png image
+        #----------------------------
+        self.dpi=350
+
+        # colors for plots
+        #-------------------
+        self.black = (0,0,0)
+        self.gray = (0.7,0.7, 0.7)
+        self.red = (1,0,0)
+        self.red_light = (1,0.7, 0.7)
+        self.blue=(0,0,1)
+        self.blue_light = (0.7, 0.7, 1)
+
+    def _default(self):
+        '''
+        '''
+        # set dpi for final png image
+        #----------------------------
+        self.dpi=350
+
+        # colors for plots
+        #-------------------
+        self.black = (0,0,0)
+        self.gray = (0.7,0.7, 0.7)
+        self.red = (1,0,0)
+        self.red_light = (1,0.7, 0.7)
+        self.blue=(0,0,1)
+        self.blue_light = (0.7, 0.7, 1)
+
+        all_dict={
+        # hide the top and right axes boundaries
+            'fig_dpi':350,
+            'fig_boxoff':True,
+            # axes and tick labels
+            'fig_axes_linewidth':[4],
+            'fig_xlabel_fontsize':[25],
+            'fig_ylabel_fontsize':[25],
+            'fig_xlabel_fontweight':'heavy',
+            'fig_ylabel_fontweight':'heavy',
+            'fig_xtick_fontsize':[15],
+            'fig_ytick_fontsize':[15],
+            'fig_xtick_fontweight':'heavy',
+            'fig_ytick_fontweight':'heavy',
+            # figure tight layout
+            'fig_tight_layout':True,
+        }
+        all_df = pd.DataFrame(all_dict, dtype='object')
+
+        return all_df
+
+    def _build_figdf_from_dict(self, figdict):
+        '''
+        '''
+        # build multiindex for trace parameters
+        multi_list = []
+        level_names = ['figure','subgroup', 'trace']
+        for level_1_key, level_1 in figdict.iteritems():
+            for level_2_key, level_2 in level_1.iteritems():
+                for level_3_i, level_3_key in enumerate(level_2):
+                    multi_list.append((level_1_key, level_2_key, level_3_key))
+
+        multiindex = pd.MultiIndex.from_tuples(multi_list, names=level_names)
+        # build dataframe
+        figdf = pd.DataFrame(index=multiindex, dtype='object')
+
+        return figdf
 #############################################################################
 # figure formatting
 #############################################################################
@@ -3169,9 +3357,73 @@ class PlotFuncs:
 
         return fig, ax
 
-    # def _twinx(self, dfs, figdfs, variables, funcs, func_kws, **kwargs):
-    #     '''
-    #     '''
+    def _covariance_matrix(self, df, figdf, variables, df_funcs=[], df_func_kws=[],array_funcs_x=[],array_func_kws_x=[],array_funcs_y=[],array_func_kws_y=[], df_sorted=[], figformat='standard', **kwargs):
+        '''FIXME add docs
+        '''
+        
+        # report progress
+        print 'plotting:', inspect.stack()[0][3]
+
+        # preallocate figures and axes
+        fig={}
+        ax={}
+        # iteratively apply functions for creating new column to dataframe
+        #----------------------------------------------------------------
+        if len(df_funcs)>0:
+            for df_func_i, df_func in enuemrate(df_funcs):
+                df = df_func(df, axis=1, **df_func_kws[df_func_i])
+        # iterate over traces to be plotted
+        #-----------------------------------
+        for figkey, subkey, tracekey, params, trace_df in self._figdf_generator(df, figdf, variables):
+            # make new figure if doesnt exist yet
+            #-------------------------------------
+            if figkey not in ax:
+                fig[figkey], ax[figkey] = plt.subplots()
+            # get series from df
+            #----------------------------------------
+            trace_series_x = trace_df[variables[0]]
+            trace_series_y = trace_df[variables[1]]
+            # check for missing values and remove rows
+            #---------------------------------------------
+            nax = ~trace_series_x.isna()
+            nay = ~trace_series_y.isna()
+            # drop any rows that contain nan
+            #-----------------------------------------------
+            trace_series_x = trace_series_x[nax&nay]
+            trace_series_y = trace_series_y[nax&nay]
+            # convert to array
+            #--------------------------------------------------
+            data_array_x = _2array(trace_series_x, remove_nans=True, remove_nans_axis=1).astype(float)
+            data_array_y = _2array(trace_series_y, remove_nans=True, remove_nans_axis=1).astype(float)
+            # apply array functions
+            #----------------------------------------------------
+            for i, array_func in enumerate(array_funcs_x):
+                data_array_x = array_func(data_array_x, **array_func_kws_x[i])
+            for i, array_func in enumerate(array_funcs_y):
+                data_array_y = array_func(data_array_y, **array_func_kws_y[i])
+            # check array shapes
+            #------------------------------
+            if type(data_array_x)==np.ndarray and len(data_array_x.shape)==1 and data_array_x.shape[0]>0 and type(data_array_y)==np.ndarray and len(data_array_y.shape)==1 and data_array_y.shape[0]>0:
+
+                # data_x_subgroup[figkey][subkey] = np.append(data_x_subgroup[figkey][subkey], data_array_x)
+                # data_y_subgroup[figkey][subkey] = np.append(data_y_subgroup[figkey][subkey], data_array_y)
+                # colors[figkey][subkey].append([param.trace_color]*len(data_array_y))
+                # markersizes[figkey][subkey].append([param.trace_markersize]*len(data_array_y))
+
+                # if data_array_x.shape[0]>0 and  data_array_x.shape[0]>0:
+                # plot
+                #------------------------------------------------------
+                print data_array_x[0]
+                print data_array_y.shape
+                ax[figkey].plot(data_array_x, data_array_y, marker='.',linestyle='None', color=params.trace_color, markersize=params.trace_markersize)
+        # format figure
+        #----------------
+        if figformat=='standard':
+            fig, ax = FormatFig()._standard_figformat(figures=fig, axes=ax, figdf=figdf)
+
+        plt.show(block=False)
+
+        return fig, ax
     def _var2var_corr(self, df, figdf, variables, df_funcs=[], df_func_kws=[],array_funcs_x=[],array_func_kws_x=[],array_funcs_y=[],array_func_kws_y=[], df_sorted=[], figformat='standard', **kwargs):
         '''FIXME add docs
         '''
@@ -3348,7 +3600,7 @@ class PlotFuncs:
 
         return fig, ax
 
-    def _trace_mean(self, df, figdf, variables, xvals=None, xvals_kw={},array_funcs=[], array_func_kws=[], df_funcs=[], df_func_kws=[], df_sorted=[], figformat='standard', **kwargs):
+    def _trace_mean(self, df, figdf, variables, xvals=None, xvals_kw={},array_funcs=[], array_func_kws=[], df_funcs=[], df_func_kws=[], df_sorted=[], figformat='standard', index=None, random_index=False, **kwargs):
         '''FIXME add docs
         '''
         
@@ -3378,8 +3630,8 @@ class PlotFuncs:
             # convert df to array
             #---------------------
             data_array = _2array(trace_df, remove_nans=True, remove_nans_axis=1)
-            print data_array
-            print 'data array shape:', data_array.shape
+            # print data_array
+            # print 'data array shape:', data_array.shape
 
             # iteratively apply array functions
             #-----------------------------------
@@ -3393,6 +3645,14 @@ class PlotFuncs:
                 # if array is 1d, convert to 2d
                 if len(data_array.shape)==1:
                     data_array = data_array.reshape((1,-1))
+                if index is not None:
+                    data_array = data_array[index, :]
+                elif random_index:
+                    index =  np.randint(0, data.shape[0])
+                    data_array = data_array[index, :]
+                if len(data_array.shape)==1:
+                    data_array = data_array.reshape((1,-1))
+
                 # mean across slices
                 data_mean = np.mean(data_array, axis=0)
                 #std across slices
@@ -3499,11 +3759,13 @@ class PlotFuncs:
                     y_vals = np.full_like(x_vals, np.nan, dtype=np.double)
                     e_vals = np.full_like(x_vals, np.nan, dtype=np.double)
                     for i, x_val in enumerate(x_vals):
-                        print trace_series.loc[x_val, variable]
-                        # get corresponding y data and convert to array
-                        #----------------------------------------------
-                        data_array = _2array(trace_series.loc[x_val, variable], remove_nans=True, remove_nans_axis=1)
-                        print 'data array shape:', data_array.shape
+                        # check if there is more than one value for the current trace
+                        if len(trace_series.loc[x_val, variable].shape)>0:
+                            # get corresponding y data and convert to array
+                            #----------------------------------------------
+                            data_array = _2array(trace_series.loc[x_val, variable], remove_nans=True, remove_nans_axis=1)
+                        else:
+                            data_array = np.array([trace_series.loc[x_val, variable]])
                         # iteratively apply array functions
                         #-----------------------------------
                         if len(array_funcs)>0:
@@ -3761,6 +4023,7 @@ class PlotFuncs:
                         # if array is 1d, convert to 2d
                         if len(data_array.shape)==1:
                             data_array = data_array.reshape((1,-1))
+
                         # mean across slices
                         data_mean = np.mean(data_array, axis=0)
                         #std across slices
@@ -3876,10 +4139,14 @@ class PlotFuncs:
 
         return fig, ax
 
-    def _shapeplot(self, df, figdf, variable, array_funcs=[], array_func_kws=[], df_funcs=[], df_func_kws=[], df_sorted=[], cmap=colormap.PiYG, **kwargs):
+    def _shapeplot(self, df, figdf, variable, array_funcs=[], array_func_kws=[], df_funcs=[], df_func_kws=[], df_sorted=[], cmap=colormap.PiYG, cmap_mid=True,  **kwargs):
         '''
         '''
         print 'plotting:', inspect.stack()[0][3]
+        if 'width_scale' in kwargs:
+            width_scale=kwargs['width_scale']
+        else:
+            width_scale=3
         fig={}
         ax={}
         # set figdf to hierarchical index (figure, subgroup, trace)
@@ -3909,8 +4176,9 @@ class PlotFuncs:
                     except:
                         print tracekey,'or', variable, 'not in df index'
                         continue
-
-                    patches, colors = ShapePlot().basic(morpho=morpho, data=data, axes=ax[figkey], width_scale=3, colormap=cmap)
+                    if cmap_mid:
+                        cmap = self._colormap_mid(data)
+                    patches, colors = ShapePlot().basic(morpho=morpho, data=data, axes=ax[figkey], width_scale=width_scale, colormap=cmap)
 
                     # plot collection
                     ax[figkey].add_collection(patches)
@@ -4040,7 +4308,24 @@ class PlotFuncs:
 
         return fig, ax
 
+    def _colormap_mid(self, values, mid_val=0., max_color = [0., .8, 0.2], min_color = [.8, 0.0, 0.6], zero_color = [1,1,1]):
+        '''
+        '''
+        vals_sorted = np.sort(values)
+        val_range = vals_sorted[-1]-vals_sorted[0]
+        mid_val_loc = (mid_val-vals_sorted[0])/val_range
 
+        cdict = {'red':   [[0.0,  min_color[0], min_color[0]],
+                   [mid_val_loc,  zero_color[0], zero_color[0]],
+                   [1.0,  max_color[0], max_color[0]]],
+                'green': [[0.0,  min_color[1], min_color[1]],
+                   [mid_val_loc,  zero_color[1], zero_color[1]],
+                   [1.0,  max_color[1], max_color[1]]],
+                'blue':  [[0.0,  min_color[2], min_color[2]],
+                   [mid_val_loc,  zero_color[2], zero_color[2]],
+                   [1.0,  max_color[2], max_color[2]]]}
+        newcmp = LinearSegmentedColormap('testCmap', segmentdata=cdict, N=256)
+        return newcmp
 
     # deprecated plot functions
     #----------------------------------------------------------------------
@@ -4588,6 +4873,15 @@ class Clopath():
         T       = u.shape[1]/fs
         dur_samples = int(T*fs)
         time    = np.arange(0., T, dt)
+
+        # remove clopath tag from parameter names
+        clopath_param={}
+        for _key, _val in param.iteritems():
+            if 'clopath' in _key:
+                clopath_key = _key.split('clopath_')[-1]
+                clopath_param[clopath_key] = _val
+            else:
+                clopath_param[_key]=_val
         
         # plasticity parameters
         #```````````````````````````````````````````````````````````````````
@@ -4604,9 +4898,10 @@ class Clopath():
         p['delay']      = 0        # conduction delay after action potential (ms)
         p['LTD_delay']  = 1         # delay (ms) applied to presynaptic spike before computing LTD term (this allows LTD in response to subthreshold inputs) 
         # update with parameters passed as arguments
-        for key, val in param.iteritems():
+        for key, val in clopath_param.iteritems():
             p[key] = val
 
+        print 'clopath_params', p
 
         # print 'clopath parameters:',p
         # preallocate learning rule variables
@@ -4671,7 +4966,7 @@ class Clopath():
             lower_bound=p['lower_bound']
         if 'upper_bound' in p:
             upper_bound=p['upper_bound']
-        print 'weight bounds, ', lower_bound, upper_bound
+        # print 'weight bounds, ', lower_bound, upper_bound
         if upper_bound is not None or lower_bound is not None:
             self.w = np.clip(self.w, a_min=lower_bound, a_max=upper_bound)
 
@@ -5213,13 +5508,13 @@ class ShapePlot():
     similar to ShapePlot in neuron
     """
     
-    def __init__(self):
+    def __init__(self, **kwargs):
         """
         """
         pass
 
-    #__________________________________________________________________________
-    def basic(self, morpho, data, axes, width_scale=1, colormap=colormap.jet):
+    #________________________________________________________________________
+    def basic(self, morpho, data, axes, width_scale=1, colormap=colormap.jet, show=False):
         """ creates a shapeplot of a given neuron morphology with the given data
 
         Arguments:
@@ -5241,7 +5536,10 @@ class ShapePlot():
                     for seg_i, seg in enumerate(sec):
                         morph_points.append(seg)
                         indexes.append(copy.copy(seg[0]))
-                        data_values.append(data[tree_key][sec_i][seg_i])
+                        if data is None:
+                            data_values.append(1)
+                        else:
+                            data_values.append(data[tree_key][sec_i][seg_i])
 
         else:
             morph_points=morpho
@@ -5298,15 +5596,18 @@ class ShapePlot():
         p = PatchCollection(patches, cmap=colormap, alpha=1.)
         # set colors
         p.set_array(np.array(colors))
-        # plot collection
-        # axes.add_collection(p)
-        # # show colorbar
-        # plt.colorbar(p)
-        # # autoscale axes
-        # axes.autoscale()
-        # plt.show(block=False)
-        return p, colors
+        if show:
+            # plot collection
+            axes.add_collection(p)
+            # show colorbar
+            plt.colorbar(p)
+            # autoscale axes
+            axes.autoscale()
+            axes.set_aspect(1.)
+            plt.axis('off')
+            plt.show(block=False)
 
+        return p, colors
 
     # FIXME show synapse locations on shapeplot
     def show_synapses(self, morpho, data, axes, width_scale=1, colormap=colormap.jet):
@@ -5428,10 +5729,14 @@ class ShapePlot():
         # find slope of connecting line
         dy = point2[1]-point1[1]
         dx = point2[0] - point1[0]
-        m = dy/dx
 
-        # find slope of orthogonal line
-        m_inv = -1./m
+        if dx!=0:
+            # slope of connecting line
+            m = dy/dx
+            # find slope of orthogonal line
+            m_inv = -1./m
+        else:
+            m_inv = 0.
 
         # find x and y changes to add diameter
         delta_y1 = m_inv*np.sqrt(d1**2/(m_inv**2+1))

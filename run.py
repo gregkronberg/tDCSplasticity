@@ -392,6 +392,170 @@ class Run():
 
 
         return rec
+
+    def _setup_recording_vectors_milstein(self, p, cell, syns, nc):
+        ''' set up recording vectors for simulation
+        ===Args===
+        -p : global parameter dictionary, must contain:
+        -----rec_idx : list of tuples [(tree, sec, seg)]
+        -----rec_variables :list of variables to record [(variable, variable type, mechanism)]
+        -geometry : geo structure
+
+        ===Out===
+        -rec : dictionary of recorded variables
+                -rec{data{variable}, location, t, p}
+                    -if variable is 'input_times', data is a list of 1d arrays containing input times for each burst in each synapse (there can be multiple repeats for each synapse location and each array can be different length depending on the input to each synapse)
+                -t and p are single entries, not lists.  They should be the same for all segments
+                -location is a list of all recorded segments as [(tree, section, segment)], specified by p['rec_idx']
+                -data{variable} is a list of hoc recording vectors 
+
+        ===Updates===
+        -hoc recording vectors are created for each segment specified in locations
+
+        ==Comments==
+        -for the 'input_times' variable, a list of the corresponding synapse type (eg ampa, nmda) is kept in rec{variable}{'syn_types'}
+        -note that each locations list can contain redundant entries due to synapses occuring in multiple pathways
+        '''
+        print 'setting up recording vectors'
+        rec=pd.DataFrame(dtype=object)
+        init_columns = ['location', 'tree_key', 'sec_num', 'seg_num', 'seg_loc','data_t', 'seg_dist', 'morpho', 'n_paths','path', 'paths', 'w', 'mechanism']
+        rec = fncs._initialize_column(rec, init_columns)
+        # rec['location']=None
+        # rec['syn_type']=None
+        # rec['tree_key']=None
+        # rec['sec_num']=None
+        # rec['seg_num']=None
+        # rec['p']=None
+        # rec['t']=None
+
+        #iterate over locations to record from
+        for i, location in enumerate(p['rec_idx']):
+            # get location info
+            #--------------------------------------------------------
+            tree_key, sec_num, seg_num, seg_loc = location
+            # seg_loc = float(seg_num+1)/(geo[tree_key][sec_num].nseg+1)
+            rec.at[i, 'location']=location
+            rec.at[i, 'tree_key']=tree_key
+            rec.at[i, 'sec_num']=sec_num
+            rec.at[i, 'seg_num']=seg_num
+            rec.at[i, 'seg_loc']=seg_loc
+
+            #update parameters
+            #-----------------------------------------------------------
+            for param, value in p.iteritems():
+                # initialize column
+                rec = fncs._initialize_column(rec, param)
+                # empty lists to nan
+                if type(value)==list or type(value)==dict:
+                    if len(value)==0:
+                        value=np.nan
+                    rec.at[i,param] = value
+                else:
+                    rec.at[i,param] = value
+
+            # update morphology info
+            #--------------------------------------------------------------
+            # get distance from soma
+            dist = p['seg_dist'][tree_key][sec_num][seg_num]
+            rec.at[i, 'seg_dist']=dist
+            # get morphology entry (overall seg index, location key, x, y, z, dimaeter, parent overall index)
+            morpho = p['morpho'][tree_key]
+            morpho_key = '_'.join([tree_key, str(sec_num), str(seg_num)])
+            morpho_val = [seg for sec in morpho for seg in sec if morpho_key in seg][0]
+            # add morphology info to rec
+            rec.at[i, 'morpho']=morpho_val
+
+            # synaptic input path parameters
+            #--------------------------------------------------------------
+            # keep track of paths that the current segment belongs to
+            paths=[]
+            # total number of paths
+            n_paths=len(p['p_path'].keys())
+            rec.at[i, 'n_paths']=n_paths
+            # iterate over input pathways
+            for path_key, path in p['p_path'].iteritems():
+                # list of paths that contain the current location
+                if location in path['syn_idx']:
+                    temp_i = path['syn_idx'].index(location)
+                    paths.append(path_key)
+                    # synaptic weight at current location
+                    if 'w_idx' in path:
+                        rec.at[i, 'w'] = path['w_idx'][temp_i]
+                    rec.at[i,'path']=path_key
+                # iterate over path parameters
+                for path_param, param_val in path.iteritems(): 
+                    colname = '_'.join(['path', path_key, path_param])
+                    # initaialize column
+                    rec = fncs._initialize_column(rec, colname)
+                    # add all path parameters to df
+                    #------------------------------
+                    rec.at[i,colname]=param_val
+            # add paths that current entry belongs to 
+            rec.at[i,'paths']=paths
+
+            # time vectors
+            #----------------------------------------------------------------
+            rec.at[i, 'data_t'] = h.Vector()
+            rec.loc[i,'data_t'].record(h._ref_t)
+
+            # update recording variables
+            #----------------------------------------------------------------
+            for variable, variable_type, mechanism in p['rec_variables']:
+                # skip time vector
+                if variable=='t':
+                    continue
+                # store mechanism
+                rec = fncs._initialize_column(rec, 'mechanism_'+variable)
+                rec.at[i, 'mechanism_'+variable]=mechanism
+                # initialize columns
+                colname = 'data_'+variable
+                rec = fncs._initialize_column(rec, colname)
+
+                # range variables
+                #-----------------
+                if variable_type == 'range' and  mechanism in dir(geo[tree_key][sec_num](seg_loc)):
+                    # point to variable for recording
+                    var_rec = getattr(geo[tree_key][sec_num](seg_loc), '_ref_'+variable)
+                    # create recording vector
+                    rec.at[i, colname] = h.Vector()
+                    rec.loc[i, colname].record(var_rec)
+
+                # synaptic variables
+                #---------------------
+                if variable_type == 'syn' and mechanism in syns[tree_key][sec_num][seg_num].keys() and  variable in dir(syns[tree_key][sec_num][seg_num][mechanism]): 
+                                
+                    # point to variable to record
+                    var_rec = getattr(syns[tree_key][sec_num][seg_num][mechanism], '_ref_'+variable)
+
+                    # create recording vector
+                    # create recording vector
+                    rec.at[i, colname] = h.Vector()
+                    rec.loc[i, colname].record(var_rec)
+
+                # synapse input times
+                #----------------------
+                if variable== 'input_times' and variable_type == 'syn':
+
+                    # iterate over synapse pathways
+                    for path_key, path in p['p_path'].iteritems():
+
+                        # if the current location is in the current pathway
+                        if location in path['syn_idx']:
+
+                            # get index of the location in the pathway
+                            seg_i = path['syn_idx'].index(location)
+
+                            # iterate over bursts 
+                            for burst_i, burst in enumerate(nc[path_key][seg_i][mechanism]):
+                                
+                                # add recording vector
+                                rec.at[i, colname]=h.Vector()
+
+                                # set recording from netcon object
+                                nc[path_key][seg_i][mechanism][burst_i].record(rec.loc[i,colname])
+
+
+        return rec
     
     def _store_recording_vectors_to_data_df(self, data, rec, add_col=['field'], add_col_vals=[], data_key='data_'):
         '''

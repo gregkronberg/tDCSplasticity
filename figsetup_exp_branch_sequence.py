@@ -694,63 +694,87 @@ class BuildFigDF:
                 # subgroup
                 '0Vm':[
                     # trace
-                    (8, 3, 10, 4L, .0055, 'out', 0L, 'soma', '{\'basal\': [3]}', ),
-                    (8, 3, 10, 4L, .0055, 'in', 0L, 'soma','{\'basal\': [3]}', )
-                ],
-            },
-            'anodal basal':{
-                # subgroup
-                '20Vm':[
-                    # trace
-                    (8, 3, 10, 4L, .0055, 'out', 20L, 'soma', '{\'basal\': [3]}', ),
-                    (8, 3, 10, 4L, .0055, 'in', 20L, 'soma','{\'basal\': [3]}', )
-                ],
-            },
-            'cathodal basal':{
-                # subgroup
-                '20Vm':[
-                    # trace
-                    (8, 3, 10, 4L, .0055, 'out', -20L, 'soma', '{\'basal\': [3]}', ),
-                    (8, 3, 10, 4L, .0055, 'in', -20L, 'soma','{\'basal\': [3]}', )
+                    (1, 12, 3, 10, 2, 1*.0005, 'out', 0L, 'soma', '{\'basal\': [3]}', ),
+                    (1, 12, 3, 10, 2, 1*.0005, 'in', 0L, 'soma','{\'basal\': [3]}', ),
+                    (1, 12, 3, 10, 2, 1*.0005, 'out', 40L, 'soma', '{\'basal\': [3]}', ),
+                    (1, 12, 3, 10, 2, 1*.0005, 'in', 40L, 'soma','{\'basal\': [3]}', ),
+                    (1, 12, 3, 10, 2, 1*.0005, 'out', -40L, 'soma', '{\'basal\': [3]}', ),
+                    (1, 12, 3, 10, 2, 1*.0005, 'in', -40L, 'soma','{\'basal\': [3]}', )
                 ],
             },
             'control apical':{
                 # subgroup
                 '0Vm':[
                     # trace
-                    (8, 3, 10, 4L, .0055, 'out', 0L, 'soma', '{\'apical_tuft\': [0]}', ),
-                    (8, 3, 10, 4L, .0055, 'in', 0L, 'soma','{\'apical_tuft\': [0]}', )
+                    (1, 12, 3, 10, 4, 1*.0005, 'out', 0L, 'soma', '{\'apical\': [10]}', ),
+                    (1, 12, 3, 10, 4, 1*.0005, 'in', 0L, 'soma','{\'apical\': [10]}', ),
+                    (1, 12, 3, 10, 4, 1*.0005, 'out', 40L, 'soma', '{\'apical\': [10]}', ),
+                    (1, 12, 3, 10, 4, 1*.0005, 'in', 40L, 'soma','{\'apical\': [10]}', ),
+                    (1, 12, 3, 10, 4, 1*.0005, 'out', -40L, 'soma', '{\'apical\': [10]}', ),
+                    (1, 12, 3, 10, 4, 1*.0005, 'in', -40L, 'soma','{\'apical\': [10]}', )
                 ],
             },
+            'anodal basal':{
+                # subgroup
+                '20Vm':[
+                    # trace
+                    (2, 8, 3, 10, 4L, 2*.0055, 'out', 20L, 'soma', '{\'basal\': [3]}', ),
+                    (2, 8, 3, 10, 4L, 2*.0055, 'in', 20L, 'soma','{\'basal\': [3]}', )
+                ],
+            },
+            'cathodal basal':{
+                # subgroup
+                '20Vm':[
+                    # trace
+                    (2, 8, 3, 10, 4L, 2*.0055, 'out', -20L, 'soma', '{\'basal\': [3]}', ),
+                    (2, 8, 3, 10, 4L, 2*.0055, 'in', -20L, 'soma','{\'basal\': [3]}', )
+                ],
+            },
+            # 'control apical':{
+            #     # subgroup
+            #     '0Vm':[
+            #         # trace
+            #         (1, 8, 3, 10, 4L, 5*.0055, 'out', 0L, 'soma', '{\'apical_tuft\': [0]}', ),
+            #         (1, 8, 3, 10, 4L, 5*.0055, 'in', 0L, 'soma','{\'apical_tuft\': [0]}', ),
+            #         (1, 8, 3, 10, 4L, 5*.0055, 'out', 40L, 'soma', '{\'apical_tuft\': [0]}', ),
+            #         (1, 8, 3, 10, 4L, 5*.0055, 'in', 40L, 'soma','{\'apical_tuft\': [0]}', ),
+            #         (1, 8, 3, 10, 4L, 5*.0055, 'out', -40L, 'soma', '{\'apical_tuft\': [0]}', ),
+            #         (1, 8, 3, 10, 4L, 5*.0055, 'in', -40L, 'soma','{\'apical_tuft\': [0]}', )
+            #     ],
+            # },
             'anodal apical':{
                 # subgroup
                 '20Vm':[
                     # trace
-                    (8, 3, 10, 4L, .0055, 'out', 20L, 'soma', '{\'apical_tuft\': [0]}', ),
-                    (8, 3, 10, 4L, .0055, 'in', 20L, 'soma','{\'apical_tuft\': [0]}', )
+                    (2, 8, 3, 10, 4L, 2*.0055, 'out', 20L, 'soma', '{\'apical_tuft\': [0]}', ),
+                    (2, 8, 3, 10, 4L, 2*.0055, 'in', 20L, 'soma','{\'apical_tuft\': [0]}', )
                 ],
             },
             'cathodal apical':{
                 # subgroup
                 '20Vm':[
                     # trace
-                    (8, 3, 10, 4L, .0055, 'out', -20L, 'soma', '{\'apical_tuft\': [0]}', ),
-                    (8, 3, 10, 4L, .0055, 'in', -20L, 'soma','{\'apical_tuft\': [0]}', )
+                    (2, 8, 3, 10, 4L, .0055, 'out', -20L, 'soma', '{\'apical_tuft\': [0]}', ),
+                    (2, 8, 3, 10, 4L, .0055, 'in', -20L, 'soma','{\'apical_tuft\': [0]}', )
                 ],
             },
             'control apical trunk':{
                 # subgroup
                 '0Vm':[
                     # trace
-                    (8, 3, 10, 4L, .0055, 'out', 0L, 'soma', '{\'apical_trunk\': [18]}', ),
-                    (8, 3, 10, 4L, .0055, 'in', 0L, 'soma','{\'apical_trunk\': [18]}', )
+                    (1, 8, 3, 10, 4L, 5*.0055, 'out', 0L, 'soma', '{\'apical_trunk\': [18]}', ),
+                    (1, 8, 3, 10, 4L, 5*.0055, 'in', 0L, 'soma','{\'apical_trunk\': [18]}', ),
+                    (1, 8, 3, 10, 4L, 5*.0055, 'out', 40L, 'soma', '{\'apical_trunk\': [18]}', ),
+                    (1, 8, 3, 10, 4L, 5*.0055, 'in', 40L, 'soma','{\'apical_trunk\': [18]}', ),
+                    (1, 8, 3, 10, 4L, 5*.0055, 'out', -40L,'soma', '{\'apical_trunk\': [18]}', ),
+                    (1, 8, 3, 10, 4L, 5*.0055, 'in', -40L,'soma',  '{\'apical_trunk\': [18]}', )
                 ],
             },
             'anodal apical trunk':{
                 # subgroup
                 '20Vm':[
                     # trace
-                    (8, 3, 10, 4L, .0055, 'out', 20L, 'soma', '{\'apical_trunk\': [18]}', ),
+                    (2, 8, 3, 10, 4L, .0055, 'out', 20L, 'soma', '{\'apical_trunk\': [18]}', ),
                     (8, 3, 10, 4L, .0055, 'in', 20L, 'soma','{\'apical_trunk\': [18]}', )
                 ],
             },
@@ -758,8 +782,8 @@ class BuildFigDF:
                 # subgroup
                 '20Vm':[
                     # trace
-                    (8, 3, 10, 4L, .0045, 'out', -20L, '{\'apical_trunk\': [18]}', ),
-                    (8, 3, 10, 4L, .0045, 'in', -20L, '{\'apical_trunk\': [18]}', )
+                    (2, 8, 3, 10, 4L, .0045, 'out', -20L, '{\'apical_trunk\': [18]}', ),
+                    (2, 8, 3, 10, 4L, .0045, 'in', -20L, '{\'apical_trunk\': [18]}', )
                 ],
             },
             # '20Hz_6syn':{
@@ -809,7 +833,7 @@ class BuildFigDF:
         #---------------------
         # figure level parameters
         # figdf['fig_topercent']=False
-        figdf['fig_ylim_all']=False
+        figdf['fig_ylim_all']=True
         figdf['fig_xlim_all']=False
         # figdf['trace_markersize']=10
         # # print figdf.fig_nyticks
@@ -820,7 +844,7 @@ class BuildFigDF:
         # figdf['fig_ylim_all']=True
         # figdf['fig_xlim_all']=True
         # figdf['fig_ymin']=-72.2
-        # figdf['fig_ymax']=-67.5
+        figdf['fig_ymax']=-50
         figdf['fig_xmin']=0.
         # figdf['fig_xmax']=30.
         figdf['fig_ylabel']='Vm (mV)'
@@ -855,16 +879,21 @@ class BuildFigDF:
         # iterate over combinations
         for key in idx_keys:
 
-            if key[2][5]=='in':
+            if key[2][7]==0:
                 figdf.at[key, 'trace_location']=1
                 figdf.at[key, 'trace_label']='control'
                 figdf.at[key, 'trace_color']=black
                 figdf.at[key, 'trace_ecolor']=black
-            elif key[2][5]=='out':
+            elif key[2][7]==40:
                 figdf.at[key, 'trace_location']=2
                 figdf.at[key, 'trace_label']='peak'
                 figdf.at[key, 'trace_color']=red
                 figdf.at[key, 'trace_ecolor']=red
+            elif key[2][7]==-40:
+                figdf.at[key, 'trace_location']=2
+                figdf.at[key, 'trace_label']='peak'
+                figdf.at[key, 'trace_color']=blue
+                figdf.at[key, 'trace_ecolor']=blue
             # elif key[2][1]<0:
             #     figdf.at[key, 'trace_location']=0
             #     figdf.at[key, 'trace_label']='trough'

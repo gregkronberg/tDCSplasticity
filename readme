@@ -1,19 +1,40 @@
-readme
+README
 
-Model of synaptic integration in CA1 pyramidal neuron during DC stimulation.
+tDCSplasticity contains python modules for running simulations of detailed biophysical neuron models and with applied electric fields and synaptic plasticity rules
 
-This is a detailed biophysical model of a CA1 pyramidal neuron based on Migliore et al. 2005.  Synaptic conductances and learning rules are based on models from Kim et al. 2015 and Clopath et al. 2010, respectively.
-
+########################################
 Modules:
+########################################
 
-run_control.py - control experiment runs, such as which experiment, number of repeats
+run_control:
+------------
+This is the main module for designing and running simulations.  Simulations are organized as "experiments", which is an arbitrary grouping of simulations.  For example an experiment might activate synapses on a particular region of dendrite or iterate a particular set of parameters.  Each experiment is implemented as its own class, which starts with the keyword 'exp_'.  Each experiment class has a 'run' method for setting up parameters and running the simulation (generally using the NEURON module for python).  Simulation results are by default saved to a directory named 'Data/experiment_name', but this can be changed via the 'data_directory' attribute. 
 
-run.py - implement hoc run controls, set up recording vectors, save data, create and save plots
+To run parallel simulations using NEURON's ParallelContext, the experiment class should have a method called 'setup_parallel_parameters' and 'run_parallel'. See run_control.from_command_line_run_parallel for how to run experiments in parallel from the terminal
 
-param.py - set up experimental parameters
+neurons:
+--------
+individual neuron types (from different papers for example) are implemented as classes in the neurons module.  The specification of a neuron object also requires a corresponding parameter class object, which is designed in the 'param' module.  Each parameter class object has a special attribute 'p', which is a dictionary of parameters that is used to specify a given cell
 
-stims.py - implement extracellular or bipolar stimulation
+param:
+------
+parameter class objects are specified in this module. The essential component of any parameter class object is an attribute called 'p', which is a dictionary of parameters.
 
-cell.py - set up cell in neuron and activate subsets synapses
+stims:
+-------
+class objects for designing stimulation.  For example, the DCS class contains methods for applying direct current stimulation to an individual cell.
 
-analysis.py - analyze data, create and save plots
+functions
+----------
+general set of utility functions
+
+analyze_exp
+-----------
+after simulations have been run, this modulation analyzes data and generates figures.  In genral, it's useful to group data from a set of simulations before analyzing it.  I call this grouped data 'group variables'.  Group variables should be generated via the run_control module. For example see run_control.Exp.generate_group_variable_vtrace, which can be called by an arbitrary experiment class to generate (and save) the corresponding group variable for that experiment.
+
+For each experiment in run_control, there should be a corresponding analysis class analyze_exp.analsis_exp_experimentname.  Generally, this analysis class will contain methods to load a set of group variables and generate figures from these group variables.  Figure generation also relies on the figsetup module to select data and format individual figures
+
+figsetup
+--------
+For each experiment in run_control or analyze_exp, there should be a corresponding figsetup class figsetup.figsetup_exp_experimentname, which contains methods for creating a pandas dataframe that describes various parameters for generating figures
+

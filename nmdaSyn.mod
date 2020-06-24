@@ -36,7 +36,7 @@ ENDCOMMENT
 NEURON {
 	POINT_PROCESS Exp2SynNMDA
 	USEION ca READ eca WRITE ica
-	RANGE tau1, tau2, e, i, ica, mgBlock,theDrive,theEca
+	RANGE tau1, tau2, e, i, ica, mgBlock,theDrive,theEca, v0_block, alpha_vspom
 	NONSPECIFIC_CURRENT i,ioffset
 
 	RANGE g
@@ -52,10 +52,10 @@ PARAMETER {
 	tau1=.1 (ms) <1e-9,1e9>     : the actual tau's for use are in init.hoc (CL)
 	tau2 = 10 (ms) <1e-9,1e9>
 	e=0	(mV)
-	eca = 100 (mV)
+	eca = 140 (mV)
 	alpha_vspom = -0.062 (/mV) :-0.075: -0.0602: -0.08: -0.062  :voltage-dependence of Mg2+ block from Maex and De Schutter 1998
 	                                           : -0.0602 from Spruston et al. (1995) (Ching-Lung)
-	v0_block = 10 (mV): 0 
+	v0_block = 0 (mV): 0 
 	caComponent = 0.1 : Ca component of total current
 	extMgConc = 1 (mM) : external Mg concentration
 }

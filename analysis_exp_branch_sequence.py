@@ -35,7 +35,7 @@ if os.path.isdir(figure_directory) is False:
 
 # variables to load
 variables = ['vtrace_df',]
-variables_reload=[]
+variables_reload=['vtrace_df']
 
 arrayfuncs = fncs.ArrayFunctions()
 dffuncs = fncs.DfFuncs()
@@ -68,7 +68,7 @@ def _vtrace_mean(vtrace_df=vtrace_df, figsetup=figsetup):
     vtrace_df = dffuncs._to_string(vtrace_df, colnames=['path_1_sec_idx'])
 
     # truncate arrays to have same length for same sequence delay
-    vtrace_df = vtrace_df.set_index(['path_1_syn_limit','path_1_nmda_ampa_ratio','branch_seg_L','path_1_delay', 'path_1_w_mean', 'path_1_sequence_direction', 'field', 'tree_key', 'path_1_sec_idx_str', 'seg_num'])
+    vtrace_df = vtrace_df.set_index(['Cm', 'path_1_syn_limit','path_1_nmda_ampa_ratio','branch_seg_L','path_1_delay', 'path_1_w_mean', 'path_1_sequence_direction', 'field', 'tree_key', 'path_1_sec_idx_str', 'seg_num'])
     # # vtrace_df = dffuncs._truncate_arrays(df=vtrace_df,)
 
     # vtrace_df['data_v'] = dffuncs._truncate_arrays(vtrace_df['data_v'])
@@ -80,6 +80,7 @@ def _vtrace_mean(vtrace_df=vtrace_df, figsetup=figsetup):
     # vtrace_df = vtrace_df.set_index(['path_1_syn_num','field', 'tree', ])
     kwargs={'dt':1./40}
     array_funcs = [arrayfuncs._truncate_array]#[arrayfuncs._subtract_timeseries]
+    array_funcs=[]
     array_func_kws = [{}]#[{'islice':slice(399, 400), 'axis':1}]
     figs, ax = fncs.PlotFuncs()._trace_mean(df=vtrace_df, figdf=figdf, variables='data_v',array_funcs=array_funcs, array_func_kws=array_func_kws, figformat='none', **kwargs)   
     vtrace_df = vtrace_df.reset_index()
